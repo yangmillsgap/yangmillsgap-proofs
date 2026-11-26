@@ -11,6 +11,9 @@ on:
       - "vendor/**"
       - "MassGap/Defs.lean"
       - "MassGap/Statement.lean"
+      - "CheckLemma.lean"
+      - "tools/ci-container.sh"
+      - ".github/workflows/image.yml"
   workflow_dispatch:
 
 permissions:
