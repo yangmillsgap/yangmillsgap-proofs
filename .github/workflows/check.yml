@@ -56,11 +56,15 @@ jobs:
       - name: Pull the pinned checker image
         id: image
         if: steps.lint.outputs.code == '0'
+        env:
+          GHCR_TOKEN: ${{ github.token }}
         run: |
           slug="$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
           tag="$(cut -d: -f2 base/lean-toolchain | tr -d '[:space:]')"
           image="ghcr.io/${slug}-check:${tag}"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           docker pull "$image"
+          docker logout ghcr.io
           echo "IMAGE=$image" >> "$GITHUB_ENV"
           file="$(node -e 'const r = JSON.parse(require("fs").readFileSync("out/lint.json", "utf8")); if (/^MassGap\/Outside\/L_[a-z][A-Za-z0-9]{0,15}_[0-9]{4,6}\.lean$/.test(r.file_path) == false) { process.exit(1); } console.log(r.file_path);')"
           echo "STEP_FILE=$file" >> "$GITHUB_ENV"

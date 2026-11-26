@@ -26,11 +26,15 @@ jobs:
           persist-credentials: false
 
       - name: Run every control fixture with no network
+        env:
+          GHCR_TOKEN: ${{ github.token }}
         run: |
           slug="$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
           tag="$(cut -d: -f2 base/lean-toolchain | tr -d '[:space:]')"
           image="ghcr.io/${slug}-check:${tag}"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           docker pull "$image"
+          docker logout ghcr.io
           mkdir -p out
           docker run --rm --network none --memory 6500m --memory-swap 6500m --cpus 2 \
             -v "$PWD/base:/work/base:ro" -v "$PWD/out:/work/out" \
