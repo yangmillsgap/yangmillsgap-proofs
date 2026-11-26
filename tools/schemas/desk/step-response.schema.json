@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/desk/step-response.schema.json",
+  "title": "DeskStepResponse",
+  "description": "200 response of GET /desk/step/:id, the public read-only view of one step. It never creates a lease.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ok",
+    "step",
+    "leases_live",
+    "checker_runs",
+    "proved_by_handle",
+    "checked_at"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "const": true
+    },
+    "step": {
+      "$ref": "../common.schema.json#/$defs/Step"
+    },
+    "leases_live": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "checker_runs": {
+      "type": "array",
+      "items": {
+        "$ref": "../common.schema.json#/$defs/CheckerRun"
+      },
+      "maxItems": 100
+    },
+    "proved_by_handle": {
+      "anyOf": [
+        {
+          "$ref": "../common.schema.json#/$defs/Actor"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "checked_at": {
+      "anyOf": [
+        {
+          "$ref": "../common.schema.json#/$defs/Timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

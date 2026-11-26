@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/desk/next-response.schema.json",
+  "title": "DeskNextResponse",
+  "description": "200 response of GET /desk/next. Either a step with its lease, or empty when nothing matches the filters right now (retry after retry_after_s). Errors use the error envelope.",
+  "oneOf": [
+    {
+      "title": "DeskNextLeased",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "empty",
+        "lease",
+        "step"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "empty": {
+          "type": "boolean",
+          "const": false
+        },
+        "lease": {
+          "$ref": "../common.schema.json#/$defs/Lease"
+        },
+        "step": {
+          "$ref": "../common.schema.json#/$defs/Step"
+        }
+      }
+    },
+    {
+      "title": "DeskNextEmpty",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "empty",
+        "reason",
+        "retry_after_s"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "const": true
+        },
+        "empty": {
+          "type": "boolean",
+          "const": true
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "no_open_steps",
+            "no_match_for_filters",
+            "join_closed"
+          ]
+        },
+        "retry_after_s": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  ]
+}

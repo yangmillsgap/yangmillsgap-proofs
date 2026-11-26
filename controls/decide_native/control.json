@@ -1,0 +1,17 @@
+{
+  "name": "decide_native",
+  "lemma_id": "L-ctl-0018",
+  "description": "Asks decide to use compiled code with the +native option.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0018.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "banned_token",
+    "reason_contains": "native"
+  }
+}

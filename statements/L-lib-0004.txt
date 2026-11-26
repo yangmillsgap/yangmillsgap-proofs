@@ -1,0 +1,1 @@
+∀ p ∈ forwardCone, 0 ≤ energy p

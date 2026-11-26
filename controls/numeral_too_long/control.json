@@ -1,0 +1,16 @@
+{
+  "name": "numeral_too_long",
+  "lemma_id": "L-ctl-0015",
+  "description": "Writes a 25 digit numeral.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0015.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "numeral_too_long"
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/hook/checker-payload.schema.json",
+  "title": "CheckerHookPayload",
+  "description": "JSON body of POST /hook/checker, sent only by the trusted workflow_run job of the proofs repo. Signing: the raw body bytes are signed with HMAC-SHA256 using HOOK_HMAC_SECRET over the string <timestamp>.<nonce>.<raw body>, sent as header X-Hook-Signature: sha256=<64 lowercase hex>. X-Hook-Timestamp is unix seconds and must be within 300 s of the desk clock. X-Hook-Nonce is 16 to 64 characters of [A-Za-z0-9_-], stored in hook_nonce, and a repeat is refused with 409 conflict. See checker-headers.schema.json and hookSigningInput() in @massgap/schemas. lemma_id is the id of the file that was checked; for a refutation it is the negated twin's id and intake marks the original refuted. reason is null only for ACCEPTED.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lemma_id",
+    "pr_number",
+    "handle",
+    "verdict",
+    "reason",
+    "runner_url",
+    "commit",
+    "duration_s",
+    "started_at",
+    "finished_at"
+  ],
+  "properties": {
+    "lemma_id": {
+      "$ref": "../common.schema.json#/$defs/LemmaId"
+    },
+    "pr_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "handle": {
+      "$ref": "../common.schema.json#/$defs/Handle"
+    },
+    "verdict": {
+      "$ref": "../common.schema.json#/$defs/Verdict"
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 500
+    },
+    "runner_url": {
+      "$ref": "../common.schema.json#/$defs/HttpsUrl"
+    },
+    "commit": {
+      "$ref": "../common.schema.json#/$defs/CommitSha"
+    },
+    "duration_s": {
+      "type": "number",
+      "minimum": 0
+    },
+    "started_at": {
+      "$ref": "../common.schema.json#/$defs/Timestamp"
+    },
+    "finished_at": {
+      "$ref": "../common.schema.json#/$defs/Timestamp"
+    }
+  },
+  "if": {
+    "properties": {
+      "verdict": {
+        "enum": [
+          "REJECTED",
+          "FAULT"
+        ]
+      }
+    },
+    "required": [
+      "verdict"
+    ]
+  },
+  "then": {
+    "properties": {
+      "reason": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

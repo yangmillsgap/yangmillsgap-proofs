@@ -1,0 +1,1 @@
+∀ (x : ℝ), |Real.exp x - 1| ≤ |x| * Real.exp |x|

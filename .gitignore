@@ -1,0 +1,8 @@
+/.lake/
+*.olean
+*.ilean
+*.trace
+/logs/
+/dist/
+node_modules/
+scratch-seeds/

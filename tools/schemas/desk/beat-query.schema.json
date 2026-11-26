@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/desk/beat-query.schema.json",
+  "title": "DeskBeatQuery",
+  "description": "POST /desk/beat?lease=<lease id>. Send every 300 s while working. A 410 response (error code gone) means stop work on this lease.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lease"
+  ],
+  "properties": {
+    "lease": {
+      "$ref": "../common.schema.json#/$defs/LeaseId"
+    }
+  }
+}

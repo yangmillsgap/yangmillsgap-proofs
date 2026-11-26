@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (l : ℕ+), wilsonEnergy (fun _ => 1 : Configuration g l) = 0

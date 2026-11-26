@@ -1,0 +1,16 @@
+{
+  "name": "string_literal",
+  "lemma_id": "L-ctl-0005",
+  "description": "Uses a string literal inside the proof.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0005.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "string_literal"
+  }
+}

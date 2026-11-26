@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (l : ℕ+) (U : Configuration g l), wilsonEnergy U ≤ 2 * (Fintype.card (Site l × Directions) : ℝ)

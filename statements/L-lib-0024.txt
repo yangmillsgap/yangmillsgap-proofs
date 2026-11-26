@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (E : EnergyMomentumMeasure H) (S : Set Spacetime), MeasurableSet S → (E.projection S = 0 ↔ ∀ ψ : H.carrier, E.diagonal ψ S = 0)

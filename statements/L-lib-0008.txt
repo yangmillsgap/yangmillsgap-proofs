@@ -1,0 +1,1 @@
+∀ (c : ℝ) (p : Spacetime), 0 ≤ c → p ∈ forwardCone → c • p ∈ forwardCone

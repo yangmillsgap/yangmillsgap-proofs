@@ -1,0 +1,1 @@
+¬(∀ (g : GaugeGroup), g.IsSimple → ∀ (g : GaugeGroup) (haar : Measure g.image), IsProbabilityMeasure haar → haar.IsHaarMeasure → ∃ β₁ : ℝ, ∀ (β : ℝ), β₁ ≤ β → ∀ (i j : Axis), ∃ L : ℝ, Tendsto (fun l : ℕ+ => ∫ U, (plaquette U 0 i j).val.val.trace.re ∂wilsonLaw g l β haar) atTop (𝓝 L))

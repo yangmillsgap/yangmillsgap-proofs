@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (E : EnergyMomentumMeasure H) (S T : Set Spacetime), MeasurableSet S → MeasurableSet T → Disjoint S T → E.projection (S ∪ T) = E.projection S + E.projection T

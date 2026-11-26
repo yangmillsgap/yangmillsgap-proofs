@@ -1,0 +1,37 @@
+name: controls
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/**"
+      - "controls/**"
+      - "CheckLemma.lean"
+      - "Dockerfile"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: base
+          persist-credentials: false
+
+      - name: Run every control fixture with no network
+        run: |
+          slug="$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          tag="$(cut -d: -f2 base/lean-toolchain | tr -d '[:space:]')"
+          image="ghcr.io/${slug}-check:${tag}"
+          docker pull "$image"
+          mkdir -p out
+          docker run --rm --network none --memory 6500m --memory-swap 6500m --cpus 2 \
+            -v "$PWD/base:/work/base:ro" -v "$PWD/out:/work/out" \
+            "$image" bash /work/base/tools/ci-container.sh controls

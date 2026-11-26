@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels), theory.W0 → ∀ (S : Set Spacetime), MeasurableSet S → S ⊆ forwardConeᶜ → spectralProjection theory S = 0

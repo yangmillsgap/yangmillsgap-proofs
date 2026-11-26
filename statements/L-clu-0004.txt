@@ -1,0 +1,1 @@
+∀ (mlat a d : ℝ), 0 < a → Real.exp (-(mlat * d)) = Real.exp (-((mlat / a) * (a * d)))

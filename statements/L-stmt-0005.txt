@@ -1,0 +1,1 @@
+∀ g : GaugeGroup, g.IsSimple → ∀ C : WilsonFamily g, WilsonRegularity C → ∀ (order : ℕ → ℕ) (T : Hierarchy C), T.Properties order → HasMassGap T.theory

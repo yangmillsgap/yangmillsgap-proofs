@@ -1,0 +1,1 @@
+∀ (t : ℝ), minkowskiSquare (timeVector t) = t ^ 2

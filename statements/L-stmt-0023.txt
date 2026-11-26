@@ -1,0 +1,1 @@
+∀ (p : Spacetime), p ∈ forwardCone → 0 ≤ minkowskiSquare p

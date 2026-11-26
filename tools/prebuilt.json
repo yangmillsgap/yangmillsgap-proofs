@@ -1,0 +1,9 @@
+{
+  "tag": "prebuilt-v4.32.0",
+  "asset": "massgap-lake-build-v4.32.0.tar.gz",
+  "url": "https://github.com/yangmillsgap/yangmillsgap-proofs/releases/download/prebuilt-v4.32.0/massgap-lake-build-v4.32.0.tar.gz",
+  "sha256": "683846e175cc23b4338f694054286564f86968d42d75137f3f59a22b2a2b1c5b",
+  "bytes": 898871,
+  "toolchain": "leanprover/lean4:v4.32.0",
+  "note": "Made by tools/make-prebuilt.sh on 2026-11-25 and not uploaded yet. Upload dist/massgap-lake-build-v4.32.0.tar.gz under the tag above before launch. Until then setup finds no release asset and builds locally; MG_PREBUILT_FILE points setup at a local copy."
+}

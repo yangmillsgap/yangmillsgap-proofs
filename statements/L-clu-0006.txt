@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels), ∀ (ψ : H.carrier) (m t : ℝ), 0 ≤ t → spectralMeasure theory ψ {p | energy p < m} = 0 → ∫ p, Real.exp (-(t * energy p)) ∂spectralMeasure theory ψ ≤ Real.exp (-(t * m)) * ‖ψ‖ ^ 2

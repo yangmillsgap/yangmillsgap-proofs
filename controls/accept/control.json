@@ -1,0 +1,15 @@
+{
+  "name": "accept",
+  "lemma_id": "L-ctl-0001",
+  "description": "A clean proof that uses a private helper, an allowed simp attribute and an allowed set_option. It must be ACCEPTED.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0001.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "ACCEPTED"
+  }
+}

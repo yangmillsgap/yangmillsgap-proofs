@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (l : ℕ+) (haar : Measure g.image) [IsProbabilityMeasure haar], wilsonLaw g l 0 haar = Measure.pi fun _ : Site l × Axis => haar

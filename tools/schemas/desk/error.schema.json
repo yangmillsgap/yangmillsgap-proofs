@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/desk/error.schema.json",
+  "title": "DeskError",
+  "description": "Error envelope for every non-2xx desk and hook response. HTTP status by code: bad_request 400, unauthorized 401 (bad seat token or hook signature), forbidden 403, not_found 404, conflict 409 (for example a replayed hook nonce), lease_limit 409 (5 live leases already), gone 410 (lease expired, withdrawn or step closed: stop work), payload_too_large 413, rate_limited 429 (also sends a Retry-After header with the same seconds as retry_after_s), internal 500, unavailable 503 (desk paused). message is a fixed sentence per code, never instructions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ok",
+    "error"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "const": false
+    },
+    "error": {
+      "title": "DeskErrorBody",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "http_status",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "title": "DeskErrorCode",
+          "type": "string",
+          "enum": [
+            "bad_request",
+            "unauthorized",
+            "forbidden",
+            "not_found",
+            "conflict",
+            "lease_limit",
+            "gone",
+            "payload_too_large",
+            "rate_limited",
+            "internal",
+            "unavailable"
+          ]
+        },
+        "http_status": {
+          "type": "integer",
+          "enum": [
+            400,
+            401,
+            403,
+            404,
+            409,
+            410,
+            413,
+            429,
+            500,
+            503
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "retry_after_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "field": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "the request field that failed validation, for bad_request"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "rate_limited"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "required": [
+              "retry_after_s"
+            ],
+            "properties": {
+              "http_status": {
+                "const": 429
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "gone"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "http_status": {
+                "const": 410
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "lease_limit"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "http_status": {
+                "const": 409
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

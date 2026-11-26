@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/hook/checker-response.schema.json",
+  "title": "CheckerHookResponse",
+  "description": "200 response of POST /hook/checker. applied is false when the run did not change any record (for example a FAULT, or a lemma that was already checked).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ok",
+    "run_id",
+    "lemma_id",
+    "applied"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "const": true
+    },
+    "run_id": {
+      "$ref": "../common.schema.json#/$defs/CheckerRunId"
+    },
+    "lemma_id": {
+      "$ref": "../common.schema.json#/$defs/LemmaId"
+    },
+    "applied": {
+      "type": "boolean"
+    }
+  }
+}

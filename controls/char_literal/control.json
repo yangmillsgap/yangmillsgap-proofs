@@ -1,0 +1,16 @@
+{
+  "name": "char_literal",
+  "lemma_id": "L-ctl-0019",
+  "description": "Uses a character literal, which counts as a string literal.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0019.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "string_literal"
+  }
+}

@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (C : WilsonFamily g) (T : Hierarchy C) (Δ δ : ℝ), 0 < δ → δ ≤ Δ → ClusteringAt T Δ → ClusteringAt T δ

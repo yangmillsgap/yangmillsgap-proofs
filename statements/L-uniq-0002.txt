@@ -1,0 +1,1 @@
+∀ (u : ℕ → ℂ) (L : ℂ), (∀ p : ℕ → ℕ, StrictMono p → ∃ q : ℕ → ℕ, StrictMono q ∧ Tendsto (u ∘ (p ∘ q)) atTop (𝓝 L)) → Tendsto u atTop (𝓝 L)

@@ -1,0 +1,16 @@
+{
+  "name": "helper_name",
+  "lemma_id": "L-ctl-0016",
+  "description": "Adds a public helper at the top level instead of a private one or one named under the theorem.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0016.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "helper_name"
+  }
+}

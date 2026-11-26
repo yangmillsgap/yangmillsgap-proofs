@@ -1,0 +1,1 @@
+∀ (μ : Measure ℝ) [IsFiniteMeasure μ] (m C : ℝ), μ (Iio 0) = 0 → (∀ (t : ℝ), 0 ≤ t → ∫ E, Real.exp (-(t * E)) ∂μ ≤ C * Real.exp (-(t * m))) → μ (Iio m) = 0

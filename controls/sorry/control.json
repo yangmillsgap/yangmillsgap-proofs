@@ -1,0 +1,17 @@
+{
+  "name": "sorry",
+  "lemma_id": "L-ctl-0011",
+  "description": "Leaves the template's sorry in place.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0011.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "banned_token",
+    "reason_contains": "sorry"
+  }
+}

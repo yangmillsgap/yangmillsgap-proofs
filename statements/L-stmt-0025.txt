@@ -1,0 +1,1 @@
+∀ (Δ : ℝ) (p : Spacetime), p ∈ forwardCone → p ∈ energyWindow Δ → p ∈ lowMassRegion Δ

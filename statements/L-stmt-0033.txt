@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels) (Δ m : ℝ), MassGapAt theory Δ → 0 ≤ m → m < Δ → theory.energyMomentum.projection {p | p ≠ 0 ∧ p ∈ massShell m} = 0

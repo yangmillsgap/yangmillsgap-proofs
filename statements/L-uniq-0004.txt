@@ -1,0 +1,1 @@
+∀ (u : ℕ → ℝ) (K m : ℝ), 0 < m → (∀ (n : ℕ), |u (n + 1) - u n| ≤ K * Real.exp (-(m * n))) → ∃ L : ℝ, Tendsto u atTop (𝓝 L)

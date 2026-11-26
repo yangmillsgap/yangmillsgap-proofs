@@ -1,0 +1,1 @@
+∀ (u : ℕ → ℂ) (a b : ℂ), Tendsto u atTop (𝓝 a) → Tendsto u atTop (𝓝 b) → a = b

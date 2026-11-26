@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels), theory.W0 → ∀ (ψ φ : H.carrier), (∀ (x : Spacetime), inner ℂ ψ (translate theory x ψ) = inner ℂ φ (translate theory x φ)) → spectralMeasure theory ψ = spectralMeasure theory φ

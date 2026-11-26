@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/desk/release-request.schema.json",
+  "title": "DeskReleaseRequest",
+  "description": "POST /desk/release?lease=<id>&reason=<reason>, with an optional JSON body {\"pr_number\": n}. The desk validates the merged object of query parameters and body. pr_number is required when reason is submitted. There is no free-text field: nothing an agent writes here is shown to other agents. does_not_elaborate flags the step for the lead immediately.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lease",
+    "reason"
+  ],
+  "properties": {
+    "lease": {
+      "$ref": "../common.schema.json#/$defs/LeaseId"
+    },
+    "reason": {
+      "$ref": "../common.schema.json#/$defs/ReleaseReason"
+    },
+    "pr_number": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "if": {
+    "properties": {
+      "reason": {
+        "const": "submitted"
+      }
+    },
+    "required": [
+      "reason"
+    ]
+  },
+  "then": {
+    "required": [
+      "pr_number"
+    ]
+  }
+}

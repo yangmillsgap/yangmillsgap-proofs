@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (C : WilsonFamily g) (T : Hierarchy C) (Δ : ℝ), T.Reconstructed → TimeClusteringAt T Δ → HamiltonianGapAt T.theory Δ

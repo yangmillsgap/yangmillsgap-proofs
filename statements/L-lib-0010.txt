@@ -1,0 +1,1 @@
+∀ (m : ℝ) (p : Spacetime), p ∈ massShell m → |m| ≤ energy p

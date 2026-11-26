@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (E : EnergyMomentumMeasure H) (ψ : H.carrier), (E.diagonal ψ).real univ = ‖ψ‖ ^ 2

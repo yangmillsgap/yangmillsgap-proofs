@@ -1,0 +1,1 @@
+∀ (Δ : ℝ), 0 < Δ → timeVector (Δ / 2) ∈ lowMassRegion Δ

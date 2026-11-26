@@ -1,0 +1,1 @@
+¬(∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels), theory.Axioms → ∀ (ψ : H.carrier), spectralProjection theory {0} ψ = inner ℂ (vacuumVector theory) ψ • vacuumVector theory)

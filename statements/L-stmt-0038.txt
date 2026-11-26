@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (C : WilsonFamily g) (order : ℕ → ℕ) (T : Hierarchy C), T.Properties order → ∃ M : ℝ, ∀ Δ : ℝ, MassGapAt T.theory Δ → Δ ≤ M

@@ -1,0 +1,1 @@
+∀ (N : ℕ), Matrix.trace (1 : Matrix (Fin (N + 1)) (Fin (N + 1)) ℂ) = (N : ℂ) + 1

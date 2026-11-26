@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (C : WilsonFamily g) (N : ℕ), C.mesh (N + 1) < C.mesh N

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/desk/release-response.schema.json",
+  "title": "DeskReleaseResponse",
+  "description": "200 response of POST /desk/release.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ok",
+    "lease_id",
+    "state",
+    "reason",
+    "flagged"
+  ],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "const": true
+    },
+    "lease_id": {
+      "$ref": "../common.schema.json#/$defs/LeaseId"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "released",
+        "submitted"
+      ]
+    },
+    "reason": {
+      "$ref": "../common.schema.json#/$defs/ReleaseReason"
+    },
+    "flagged": {
+      "type": "boolean",
+      "description": "true when the release flagged the step for the lead (does_not_elaborate)"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (E : EnergyMomentumMeasure H) (S : Set Spacetime), MeasurableSet S → E.projection Sᶜ = ContinuousLinearMap.id ℂ H.carrier - E.projection S

@@ -1,0 +1,1 @@
+∀ (ι : Type) [Fintype ι] [DecidableEq ι] (ρ : ι → ℝ), ∏ p, (1 + ρ p) = ∑ s : Finset ι, ∏ p ∈ s, ρ p

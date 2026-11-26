@@ -1,0 +1,1 @@
+∀ (p q : Spacetime), p ∈ forwardCone → q ∈ forwardCone → p + q ∈ forwardCone

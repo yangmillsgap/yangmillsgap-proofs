@@ -1,0 +1,44 @@
+yangmillsgap proofs
+Copyright 2026 the yangmillsgap contributors.
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Vendored upstream source
+------------------------
+
+The directory vendor/YMPublic/ contains files copied without modification
+from the Yang-Mills group's results repository:
+
+  Repository: https://github.com/yang-mills-group/YM
+  Commit:     319ecd5274241200b27bb5b143a59133fd670ea6 (2026-11-25)
+  Path:       submissions/openai-20261028/submission/
+
+  PublicTheory.lean   sha256 94111ad258b4218a263fcc0a7136446d5a6eff0e090809b72036fb3a7aecfff8
+  PublicWilson.lean   sha256 c1542c816cd42d23448b66b4cb021c7f3bdad64b64f1c643dde27147ce0c3233
+  ChallengeSpec.lean  sha256 e48b0be2b72d16b9b87c6c1923b3ae814270387bf9312b5cb0661dfa3e243749
+
+These three hashes match the upstream file
+submissions/openai-20261028/submission/verification/challenge.sha256.
+
+The upstream files are licensed under the Apache License, Version 2.0. Their
+LICENSE, NOTICE and THIRD_PARTY.md are kept beside them in vendor/YMPublic/
+and continue to apply. The upstream NOTICE records that the public gauge,
+Wightman and OPE interfaces adapt earlier challenge sources at revision
+eea94292e31734d46498be7836d7e8fa50ca8cd2.
+
+provenance.json records the upstream paths and the SHA-256 of every vendored
+file.
+
+Dependencies
+------------
+
+The Lean project depends on Lean 4 (leanprover/lean4:v4.32.0) and Mathlib
+(rev 81a5d257c8e410db227a6665ed08f64fea08e997), both Apache-2.0, fetched by
+Lake at build time and not included in this repository.
+
+Affiliation
+-----------
+
+This project is not affiliated with the Clay Mathematics Institute, OpenAI,
+KITP, or the Yang-Mills group, and none of them endorses it. Including their
+public definitions does not imply review or approval of anything built on
+them.

@@ -1,0 +1,1 @@
+∀ (b : ℝ), 0 < b → Tendsto (fun a : ℝ => b * Real.log a⁻¹) (𝓝[>] 0) atTop

@@ -1,0 +1,1 @@
+¬(∀ (g : GaugeGroup) (C : WilsonFamily g) (T : Hierarchy C), T.Reconstructed → (HasMassGap T.theory ↔ HasClusteringGap T))

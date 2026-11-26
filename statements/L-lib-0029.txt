@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels), ∀ (x : Spacetime) (ψ φ : H.carrier), inner ℂ (translate theory x ψ) (translate theory x φ) = inner ℂ ψ φ

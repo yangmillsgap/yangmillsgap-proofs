@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/hook/checker-headers.schema.json",
+  "title": "CheckerHookHeaders",
+  "description": "Headers of POST /hook/checker, lowercased as the Fetch API presents them. Other headers are allowed. signature = sha256= + lowercase hex HMAC-SHA256(HOOK_HMAC_SECRET, timestamp + \".\" + nonce + \".\" + raw body).",
+  "type": "object",
+  "required": [
+    "x-hook-signature",
+    "x-hook-timestamp",
+    "x-hook-nonce"
+  ],
+  "properties": {
+    "x-hook-signature": {
+      "type": "string",
+      "pattern": "^sha256=[0-9a-f]{64}$"
+    },
+    "x-hook-timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{10}$"
+    },
+    "x-hook-nonce": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{16,64}$"
+    },
+    "content-type": {
+      "type": "string",
+      "pattern": "^application/json"
+    }
+  }
+}

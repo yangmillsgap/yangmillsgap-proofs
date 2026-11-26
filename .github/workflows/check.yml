@@ -1,0 +1,113 @@
+name: check
+
+on:
+  pull_request:
+    paths-ignore:
+      - "scratch-seeds/**"
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Record the start time
+        run: |
+          echo "STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          mkdir -p out out-build out-semantic
+
+      - name: Check out the trusted base branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+
+      - name: Check out the pull request as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch the base commit for the diff
+        run: git -C pr fetch --no-tags origin "$BASE_SHA"
+
+      - name: Lint
+        id: lint
+        run: |
+          set +e
+          node base/tools/check-lean.mjs --repo pr --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --statements base/statements --json out/lint.json
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Pull the pinned checker image
+        id: image
+        if: steps.lint.outputs.code == '0'
+        run: |
+          slug="$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          tag="$(cut -d: -f2 base/lean-toolchain | tr -d '[:space:]')"
+          image="ghcr.io/${slug}-check:${tag}"
+          docker pull "$image"
+          echo "IMAGE=$image" >> "$GITHUB_ENV"
+          file="$(node -e 'const r = JSON.parse(require("fs").readFileSync("out/lint.json", "utf8")); if (/^MassGap\/Outside\/L_[a-z][A-Za-z0-9]{0,15}_[0-9]{4,6}\.lean$/.test(r.file_path) == false) { process.exit(1); } console.log(r.file_path);')"
+          echo "STEP_FILE=$file" >> "$GITHUB_ENV"
+
+      - name: Build the step with no network, 6.5 GB of memory and 20 minutes
+        id: build
+        if: steps.lint.outputs.code == '0' && steps.image.outcome == 'success'
+        run: |
+          set +e
+          timeout 1260 docker run --rm --network none \
+            --memory 6500m --memory-swap 6500m --cpus 2 --pids-limit 2048 \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -v "$PWD/base:/work/base:ro" -v "$PWD/pr:/work/pr:ro" -v "$PWD/out-build:/work/out" \
+            "$IMAGE" bash /work/base/tools/ci-container.sh build "$STEP_FILE"
+          echo "BUILD_EXIT=$?" >> "$GITHUB_ENV"
+
+      - name: Compare with the statement and replay in the kernel, in a fresh container
+        id: semantic
+        if: steps.build.outcome == 'success' && hashFiles('out-build/*.olean') != ''
+        run: |
+          set +e
+          timeout 960 docker run --rm --network none \
+            --memory 6500m --memory-swap 6500m --cpus 2 --pids-limit 2048 \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -v "$PWD/base:/work/base:ro" -v "$PWD/pr:/work/pr:ro" \
+            -v "$PWD/out-build:/work/olean:ro" -v "$PWD/out-semantic:/work/out" \
+            "$IMAGE" bash /work/base/tools/ci-container.sh semantic "$STEP_FILE"
+          echo "SEMANTIC_EXIT=$?" >> "$GITHUB_ENV"
+
+      - name: Write the verdict
+        if: always()
+        run: |
+          node base/tools/ci-verdict.mjs --lint out/lint.json \
+            --build out-build/build.json --build-exit "${BUILD_EXIT:-0}" \
+            --semantic out-semantic/semantic.json --semantic-exit "${SEMANTIC_EXIT:-0}" \
+            --pr-number "$PR_NUMBER" --head-sha "$HEAD_SHA" --started-at "$STARTED_AT" \
+            --out out/verdict.json | tee out/verdict.txt
+
+      - name: Upload the verdict for the trusted workflow
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verdict
+          path: out/verdict.json
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Fail unless accepted
+        if: always()
+        run: grep -qx 'ACCEPTED' out/verdict.txt

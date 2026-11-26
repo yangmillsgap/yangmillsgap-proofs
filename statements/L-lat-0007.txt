@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (l : ℕ+) (U : Configuration g l) (t : Site l → g.image), wilsonEnergy (g := g) (l := l) (fun e => t e.1 * U e * (t (e.1 + Pi.single e.2 1))⁻¹) = wilsonEnergy U

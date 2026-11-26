@@ -1,0 +1,1 @@
+∀ (x : Spacetime), minkowskiInner x x = minkowskiSquare x

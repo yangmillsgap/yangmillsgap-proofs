@@ -1,0 +1,1 @@
+∀ (N : ℕ) (U : Matrix.unitaryGroup (Fin (N + 1)) ℂ), ‖Matrix.trace (U : Matrix (Fin (N + 1)) (Fin (N + 1)) ℂ)‖ ≤ (N : ℝ) + 1

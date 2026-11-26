@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (E : EnergyMomentumMeasure H) (S : Set Spacetime), MeasurableSet S → (E.projection S).comp (E.projection S) = E.projection S

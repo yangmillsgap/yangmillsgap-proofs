@@ -1,0 +1,1 @@
+∀ (m₁ m₂ K₁ K₂ : ℝ) (f₁ f₂ : ℝ → ℝ), 0 ≤ K₁ → 0 ≤ K₂ → (∀ (t : ℝ), 0 ≤ t → |f₁ t| ≤ K₁ * Real.exp (-(m₁ * t))) → (∀ (t : ℝ), 0 ≤ t → |f₂ t| ≤ K₂ * Real.exp (-(m₂ * t))) → ∀ (t : ℝ), 0 ≤ t → |f₁ t + f₂ t| ≤ (K₁ + K₂) * Real.exp (-(min m₁ m₂ * t))

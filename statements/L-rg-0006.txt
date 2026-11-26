@@ -1,0 +1,1 @@
+∀ (s a : ℝ), 0 < a → s * Real.log (a / 2)⁻¹ - s * Real.log a⁻¹ = s * Real.log 2

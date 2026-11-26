@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (C : WilsonFamily g) (order : ℕ → ℕ) (T : Hierarchy C), T.Properties order → Subsingleton T.Character → PhasesAgree T

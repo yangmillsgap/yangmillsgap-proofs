@@ -1,0 +1,1 @@
+∀ (μ : Measure ℝ) [IsFiniteMeasure μ], μ (Iio 0) = 0 → Tendsto (fun t : ℝ => ∫ E, Real.exp (-(t * E)) ∂μ) atTop (𝓝 (μ.real {0}))

@@ -1,0 +1,17 @@
+{
+  "name": "import_disallowed",
+  "lemma_id": "L-ctl-0014",
+  "description": "Imports the Lean meta library, which is not on the allowed list.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0014.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "import_disallowed",
+    "reason_contains": "Lean"
+  }
+}

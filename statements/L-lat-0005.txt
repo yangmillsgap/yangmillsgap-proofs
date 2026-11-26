@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (l : ℕ+) (U : Configuration g l) (t : Site l → g.image) (x : Site l) (i j : Axis), plaquette (fun e => t e.1 * U e * (t (e.1 + Pi.single e.2 1))⁻¹) x i j = t x * plaquette U x i j * (t x)⁻¹

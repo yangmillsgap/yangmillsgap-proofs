@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (l : ℕ+) (U : Configuration g l) (x : Site l) (i : Axis), plaquette U x i i = 1

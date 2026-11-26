@@ -1,0 +1,17 @@
+{
+  "name": "hash_eval",
+  "lemma_id": "L-ctl-0006",
+  "description": "Runs code at compile time with #eval.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0006.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "hash_command",
+    "reason_contains": "#eval"
+  }
+}

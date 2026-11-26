@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels), timeEvolution theory 0 = ContinuousLinearMap.id ℂ H.carrier

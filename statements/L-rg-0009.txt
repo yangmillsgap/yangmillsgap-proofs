@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (C : WilsonFamily g), WilsonRegularity C → ∃ slope : ℝ, 0 < slope ∧ Tendsto (fun N => C.beta N 0 / Real.log (C.mesh N)⁻¹) atTop (𝓝 slope)

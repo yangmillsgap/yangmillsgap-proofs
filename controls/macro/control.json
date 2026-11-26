@@ -1,0 +1,17 @@
+{
+  "name": "macro",
+  "lemma_id": "L-ctl-0007",
+  "description": "Defines a tactic macro.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0007.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "banned_token",
+    "reason_contains": "macro"
+  }
+}

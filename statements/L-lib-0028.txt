@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels), ∀ (s t : ℝ), (timeEvolution theory s).comp (timeEvolution theory t) = timeEvolution theory (s + t)

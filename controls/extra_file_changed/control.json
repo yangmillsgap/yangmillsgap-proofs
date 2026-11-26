@@ -1,0 +1,21 @@
+{
+  "name": "extra_file_changed",
+  "lemma_id": "L-ctl-0008",
+  "description": "Adds a correct step file and also edits README.md.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0008.lean",
+      "mode": "100644"
+    },
+    {
+      "status": "M",
+      "path": "README.md",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "extra_file_changed"
+  }
+}

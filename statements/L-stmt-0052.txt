@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (C : WilsonFamily g) (T : Hierarchy C), PhasesAgree T → ∀ (ξ ζ : T.Character) (n : ℕ) (a : Fin n → T.Tag) (x : Points n), x ∈ WilsonFamily.separated n → T.correlation (some ξ) a x = T.correlation (some ζ) a x

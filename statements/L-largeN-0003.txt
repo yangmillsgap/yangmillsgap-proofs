@@ -1,0 +1,1 @@
+∀ (N : ℕ) (ζ : ℂ), Matrix.trace (ζ • (1 : Matrix (Fin (N + 1)) (Fin (N + 1)) ℂ)) / ((N : ℂ) + 1) = ζ

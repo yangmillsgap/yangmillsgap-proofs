@@ -1,0 +1,9 @@
+.git
+.lake
+dist
+logs
+scratch-seeds
+**/node_modules
+*.olean
+*.ilean
+*.trace

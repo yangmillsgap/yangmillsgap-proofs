@@ -1,0 +1,16 @@
+{
+  "name": "wrong_path",
+  "lemma_id": "L-ctl-0009",
+  "description": "Puts a correct proof in MassGap/Library instead of the leased path under MassGap/Outside.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Library/L_ctl_0009.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "wrong_path"
+  }
+}

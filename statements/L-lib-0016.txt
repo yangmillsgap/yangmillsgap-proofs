@@ -1,0 +1,1 @@
+∀ (Δ : ℝ), MeasurableSet {p : Spacetime | p ≠ 0 ∧ minkowskiSquare p < Δ ^ 2}

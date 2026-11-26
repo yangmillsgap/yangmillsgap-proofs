@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (l : ℕ+) (β : ℝ) (haar : Measure g.image) [IsProbabilityMeasure haar], IsProbabilityMeasure (wilsonLaw g l β haar)

@@ -1,0 +1,1 @@
+∀ (c s a : ℝ), 0 < a → Real.exp (-(c * (s * Real.log a⁻¹))) / a = a ^ (c * s - 1)

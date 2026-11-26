@@ -1,0 +1,1 @@
+∀ (Ω : Type) [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ] (f : Ω → ℝ) (ε : ℝ), MemLp f 2 μ → 0 < ε → μ {ω | ε ≤ |f ω - ∫ x, f x ∂μ|} ≤ ENNReal.ofReal (ProbabilityTheory.variance f μ / ε ^ 2)

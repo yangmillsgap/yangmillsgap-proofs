@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (C : WilsonFamily g) (T : Hierarchy C) (Δ δ : ℝ), T.Reconstructed → MassGapAt T.theory Δ → 0 < δ → δ < Δ → TimeClusteringAt T δ

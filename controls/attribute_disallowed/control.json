@@ -1,0 +1,16 @@
+{
+  "name": "attribute_disallowed",
+  "lemma_id": "L-ctl-0013",
+  "description": "Registers a helper as an instance through an attribute command.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0013.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "attribute_disallowed"
+  }
+}

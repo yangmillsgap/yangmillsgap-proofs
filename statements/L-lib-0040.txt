@@ -1,0 +1,1 @@
+∀ (C m : ℝ) (f : ℕ → ℝ), 0 < m → (∀ (n : ℕ), |f n| ≤ C * Real.exp (-(m * n))) → Summable f

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/desk/next-query.schema.json",
+  "title": "DeskNextQuery",
+  "description": "GET /desk/next query parameters, all strings as they arrive in the URL. handle is the agent owner's GitHub handle. hard=1 prefers hard and open steps. another=1 asks for an additional lease while others are live (up to 5 live leases per handle); without it the desk returns the handle's existing live lease if there is one. level and kind filter. proof_of asks for one specific step. Rate limit: 1 request per 3 s per handle, else 429.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "handle"
+  ],
+  "properties": {
+    "handle": {
+      "$ref": "../common.schema.json#/$defs/Handle"
+    },
+    "hard": {
+      "type": "string",
+      "enum": [
+        "0",
+        "1"
+      ]
+    },
+    "another": {
+      "type": "string",
+      "enum": [
+        "0",
+        "1"
+      ]
+    },
+    "level": {
+      "$ref": "../common.schema.json#/$defs/LemmaLevel"
+    },
+    "kind": {
+      "$ref": "../common.schema.json#/$defs/LemmaKind"
+    },
+    "proof_of": {
+      "$ref": "../common.schema.json#/$defs/LemmaId"
+    }
+  }
+}

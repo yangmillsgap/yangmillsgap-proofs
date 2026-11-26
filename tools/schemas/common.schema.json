@@ -1,0 +1,1773 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.massgap.invalid/common.schema.json",
+  "title": "Common",
+  "description": "Shared identifiers, enums and record shapes. Every other schema refers here. All timestamps are UTC ISO 8601 with a trailing Z.",
+  "$defs": {
+    "LemmaId": {
+      "title": "LemmaId",
+      "description": "Stable lemma id, L-<program key>-<4 to 6 digits>, for example L-clu-0042. The pattern is the one in proofs/CONVENTIONS.md section 1, so a program key may hold digits after its first letter.",
+      "type": "string",
+      "pattern": "^L-[a-z][A-Za-z0-9]{0,15}-[0-9]{4,6}$"
+    },
+    "ProgramId": {
+      "title": "ProgramId",
+      "description": "Program id. In v0 the id equals the program key (lib, stmt, clu, lat, rg, uniq, largeN, num). It follows the program key rule of proofs/CONVENTIONS.md section 1.",
+      "type": "string",
+      "pattern": "^[a-z][A-Za-z0-9]{0,15}$"
+    },
+    "SeatId": {
+      "title": "SeatId",
+      "description": "Fleet seat id, seat-<role short name>-<n>, for example seat-strat-1.",
+      "type": "string",
+      "pattern": "^seat-[a-z]+-[0-9]{1,3}$"
+    },
+    "Handle": {
+      "title": "Handle",
+      "description": "GitHub handle of an outside contributor or of a fleet builder account. Handles starting with seat- are refused so nobody can pose as a seat.",
+      "type": "string",
+      "pattern": "^(?!seat-)[A-Za-z0-9][A-Za-z0-9-]{0,38}$"
+    },
+    "Actor": {
+      "title": "Actor",
+      "description": "Either a seat id or a GitHub handle, or the literal system.",
+      "type": "string",
+      "pattern": "^(system|seat-[a-z]+-[0-9]{1,3}|[A-Za-z0-9][A-Za-z0-9-]{0,38})$"
+    },
+    "ActorType": {
+      "title": "ActorType",
+      "type": "string",
+      "enum": [
+        "seat",
+        "contributor",
+        "system"
+      ]
+    },
+    "LeaseId": {
+      "title": "LeaseId",
+      "description": "Lease id, ls- followed by 32 lowercase hex characters (128 random bits). It works as a bearer capability for beat and release.",
+      "type": "string",
+      "pattern": "^ls-[0-9a-f]{32}$"
+    },
+    "HubMessageId": {
+      "title": "HubMessageId",
+      "type": "string",
+      "pattern": "^H-[0-9]{6,12}$"
+    },
+    "GraveyardId": {
+      "title": "GraveyardId",
+      "type": "string",
+      "pattern": "^G-[0-9]{4,8}$"
+    },
+    "ApproachId": {
+      "title": "ApproachId",
+      "description": "Id of an approach that died before any single lemma carried it, for example A-clu-0003.",
+      "type": "string",
+      "pattern": "^A-[a-z][A-Za-z0-9]{0,15}-[0-9]{4,6}$"
+    },
+    "CheckerRunId": {
+      "title": "CheckerRunId",
+      "type": "string",
+      "pattern": "^run-[0-9]{1,12}$"
+    },
+    "BucketName": {
+      "title": "BucketName",
+      "description": "Lemma bucket, <id prefix>-<floor(number/100) as 4 digits>. L-clu-0042 is in clu-0000, L-lib-012345 is in lib-0123.",
+      "type": "string",
+      "pattern": "^[a-z][A-Za-z0-9]{0,15}-[0-9]{4}$"
+    },
+    "Timestamp": {
+      "title": "Timestamp",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,3})?Z$"
+    },
+    "CommitSha": {
+      "title": "CommitSha",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "HttpsUrl": {
+      "title": "HttpsUrl",
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://",
+      "maxLength": 2048
+    },
+    "LeanModule": {
+      "title": "LeanModule",
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)*$",
+      "maxLength": 200,
+      "description": "A Lean module name."
+    },
+    "LeanFilePath": {
+      "title": "LeanFilePath",
+      "description": "Path of the proof file inside the proofs repo, MassGap/Outside/<stem>.lean where stem is the id with - replaced by _ (proofs/CONVENTIONS.md section 2).",
+      "type": "string",
+      "pattern": "^MassGap/Outside/L_[a-z][A-Za-z0-9]{0,15}_[0-9]{4,6}\\.lean$",
+      "maxLength": 200
+    },
+    "StatementPath": {
+      "title": "StatementPath",
+      "description": "Recorded statement text inside the proofs repo, statements/<LemmaId>.txt.",
+      "type": "string",
+      "pattern": "^statements/L-[a-z][A-Za-z0-9]{0,15}-[0-9]{4,6}\\.txt$"
+    },
+    "LeanStatement": {
+      "title": "LeanStatement",
+      "description": "Canonical statement text, exactly as in statements/<id>.txt without the trailing newline (proofs/CONVENTIONS.md section 3): the Lean type of the theorem only, with no theorem keyword, name or proof, all binders written with forall or arrows, NFC normalized, every whitespace run collapsed to one space, trimmed, on one line. Use canonicalStatement() from @massgap/schemas to produce it. A negated twin's statement is exactly ¬( + T + ).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000,
+      "pattern": "^(?! )(?!.* $)(?!.*  )[^\\t\\n\\v\\f\\r]+$"
+    },
+    "PlainText": {
+      "title": "PlainText",
+      "type": "string",
+      "maxLength": 2000
+    },
+    "Markdown": {
+      "title": "Markdown",
+      "description": "Markdown written by a seat or the lead. Render escaped or sanitized, never as raw HTML.",
+      "type": "string",
+      "maxLength": 20000
+    },
+    "LemmaKind": {
+      "title": "LemmaKind",
+      "type": "string",
+      "enum": [
+        "prove",
+        "refute",
+        "search",
+        "value",
+        "cut"
+      ]
+    },
+    "LemmaLevel": {
+      "title": "LemmaLevel",
+      "type": "string",
+      "enum": [
+        "warmup",
+        "solid",
+        "hard",
+        "open"
+      ]
+    },
+    "LemmaStatus": {
+      "title": "LemmaStatus",
+      "type": "string",
+      "enum": [
+        "conjecture",
+        "in_work",
+        "checked",
+        "refuted",
+        "ruled_dead",
+        "retired",
+        "blocked",
+        "not_faithful"
+      ]
+    },
+    "Faithfulness": {
+      "title": "Faithfulness",
+      "type": "string",
+      "enum": [
+        "unreviewed",
+        "seat_reviewed",
+        "expert_reviewed",
+        "disputed"
+      ]
+    },
+    "FeedKind": {
+      "title": "FeedKind",
+      "type": "string",
+      "enum": [
+        "lemma_checked",
+        "lemma_refuted",
+        "lemma_stated",
+        "lemma_ruled_dead",
+        "lease_taken",
+        "status",
+        "paper",
+        "letter",
+        "news"
+      ]
+    },
+    "GraveyardCause": {
+      "title": "GraveyardCause",
+      "type": "string",
+      "enum": [
+        "counterexample",
+        "obstruction",
+        "faithfulness",
+        "other"
+      ]
+    },
+    "ReleaseReason": {
+      "title": "ReleaseReason",
+      "type": "string",
+      "enum": [
+        "hypothesis_too_weak",
+        "missing_lemma",
+        "statement_seems_false",
+        "does_not_elaborate",
+        "out_of_time",
+        "other",
+        "reduced",
+        "submitted"
+      ]
+    },
+    "LeaseState": {
+      "title": "LeaseState",
+      "type": "string",
+      "enum": [
+        "live",
+        "released",
+        "submitted",
+        "expired",
+        "withdrawn"
+      ]
+    },
+    "Verdict": {
+      "title": "Verdict",
+      "type": "string",
+      "enum": [
+        "ACCEPTED",
+        "REJECTED",
+        "FAULT"
+      ]
+    },
+    "HubKind": {
+      "title": "HubKind",
+      "type": "string",
+      "enum": [
+        "public",
+        "operational"
+      ]
+    },
+    "ProgramStatus": {
+      "title": "ProgramStatus",
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "merged",
+        "closed"
+      ]
+    },
+    "SeatRole": {
+      "title": "SeatRole",
+      "type": "string",
+      "enum": [
+        "strategy",
+        "library",
+        "statement",
+        "redteam",
+        "intake",
+        "news",
+        "ops",
+        "obstruction",
+        "numerics",
+        "builder"
+      ]
+    },
+    "StatusCounts": {
+      "title": "StatusCounts",
+      "description": "Number of lemmas in each status. Every status key is always present.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conjecture",
+        "in_work",
+        "checked",
+        "refuted",
+        "ruled_dead",
+        "retired",
+        "blocked",
+        "not_faithful"
+      ],
+      "properties": {
+        "conjecture": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "in_work": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "checked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refuted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ruled_dead": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retired": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_faithful": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "Citation": {
+      "title": "Citation",
+      "description": "A source a statement leans on. verified stays false until the library seat has confirmed the source exists and says what we claim.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "url",
+        "verified"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "url": {
+          "$ref": "#/$defs/HttpsUrl"
+        },
+        "verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SearchRange": {
+      "title": "SearchRange",
+      "description": "Inclusive integer range for a search step.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "integer"
+        },
+        "to": {
+          "type": "integer"
+        }
+      }
+    },
+    "CheckerRun": {
+      "title": "CheckerRun",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "lemma_id",
+        "pr_number",
+        "handle",
+        "verdict",
+        "reason",
+        "runner_url",
+        "commit",
+        "duration_s",
+        "started_at",
+        "finished_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/CheckerRunId"
+        },
+        "lemma_id": {
+          "$ref": "#/$defs/LemmaId"
+        },
+        "pr_number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "handle": {
+          "$ref": "#/$defs/Handle"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
+        },
+        "runner_url": {
+          "$ref": "#/$defs/HttpsUrl"
+        },
+        "commit": {
+          "$ref": "#/$defs/CommitSha"
+        },
+        "duration_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "started_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "finished_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      }
+    },
+    "FailedAttempt": {
+      "title": "FailedAttempt",
+      "description": "One attempt that did not land. Only enum codes and checker reasons appear here. Free text from agents is never echoed to other agents.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "handle",
+        "via",
+        "release_reason",
+        "checker_reason"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "handle": {
+          "$ref": "#/$defs/Actor"
+        },
+        "via": {
+          "type": "string",
+          "enum": [
+            "release",
+            "checker"
+          ]
+        },
+        "release_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReleaseReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checker_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
+        }
+      }
+    },
+    "LemmaSummary": {
+      "title": "LemmaSummary",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "program_id",
+        "kind",
+        "level",
+        "status",
+        "faithfulness",
+        "title",
+        "plain_sentence",
+        "points",
+        "rung",
+        "negation_id",
+        "parent_ids",
+        "proved_by_handle",
+        "checked_at",
+        "leases_live"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/LemmaId"
+        },
+        "program_id": {
+          "$ref": "#/$defs/ProgramId"
+        },
+        "kind": {
+          "$ref": "#/$defs/LemmaKind"
+        },
+        "level": {
+          "$ref": "#/$defs/LemmaLevel"
+        },
+        "status": {
+          "$ref": "#/$defs/LemmaStatus"
+        },
+        "faithfulness": {
+          "$ref": "#/$defs/Faithfulness"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "plain_sentence": {
+          "$ref": "#/$defs/PlainText"
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rung": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "negation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LemmaId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parent_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LemmaId"
+          }
+        },
+        "proved_by_handle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Actor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checked_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "leases_live": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "LemmaRecord": {
+      "title": "LemmaRecord",
+      "description": "Full public record of one lemma, as stored in lemma buckets.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "program_id",
+        "kind",
+        "level",
+        "status",
+        "faithfulness",
+        "title",
+        "plain_sentence",
+        "lean_statement",
+        "module",
+        "file_path",
+        "statement_path",
+        "imports",
+        "context_md",
+        "sketch_md",
+        "negation_id",
+        "parent_ids",
+        "child_ids",
+        "rung",
+        "points",
+        "reductions_open",
+        "value_template",
+        "search_range",
+        "citations",
+        "created_by",
+        "created_at",
+        "checked_at",
+        "proved_by_handle",
+        "proof_commit",
+        "runner_url",
+        "leases_live",
+        "failed_attempts",
+        "checker_runs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/LemmaId"
+        },
+        "program_id": {
+          "$ref": "#/$defs/ProgramId"
+        },
+        "kind": {
+          "$ref": "#/$defs/LemmaKind"
+        },
+        "level": {
+          "$ref": "#/$defs/LemmaLevel"
+        },
+        "status": {
+          "$ref": "#/$defs/LemmaStatus"
+        },
+        "faithfulness": {
+          "$ref": "#/$defs/Faithfulness"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "plain_sentence": {
+          "$ref": "#/$defs/PlainText"
+        },
+        "lean_statement": {
+          "$ref": "#/$defs/LeanStatement"
+        },
+        "module": {
+          "$ref": "#/$defs/LeanModule"
+        },
+        "file_path": {
+          "$ref": "#/$defs/LeanFilePath"
+        },
+        "statement_path": {
+          "$ref": "#/$defs/StatementPath"
+        },
+        "imports": {
+          "$ref": "#/$defs/StepImports"
+        },
+        "context_md": {
+          "$ref": "#/$defs/Markdown"
+        },
+        "sketch_md": {
+          "$ref": "#/$defs/Markdown"
+        },
+        "negation_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LemmaId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parent_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LemmaId"
+          }
+        },
+        "child_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LemmaId"
+          }
+        },
+        "rung": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reductions_open": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value_template": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 20000
+        },
+        "search_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SearchRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Citation"
+          }
+        },
+        "created_by": {
+          "$ref": "#/$defs/Actor"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "checked_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proved_by_handle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Actor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proof_commit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CommitSha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runner_url": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "leases_live": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_attempts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FailedAttempt"
+          },
+          "maxItems": 100
+        },
+        "checker_runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckerRun"
+          },
+          "maxItems": 100
+        }
+      }
+    },
+    "FeedEvent": {
+      "title": "FeedEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seq",
+        "at",
+        "kind",
+        "seat_or_handle",
+        "actor_type",
+        "lemma_id",
+        "program_id",
+        "sentence",
+        "runner_url"
+      ],
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "kind": {
+          "$ref": "#/$defs/FeedKind"
+        },
+        "seat_or_handle": {
+          "$ref": "#/$defs/Actor"
+        },
+        "actor_type": {
+          "$ref": "#/$defs/ActorType"
+        },
+        "lemma_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LemmaId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "program_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProgramId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sentence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600
+        },
+        "runner_url": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PublicHubMessage": {
+      "title": "PublicHubMessage",
+      "description": "A hub message as exported. Only public messages are ever exported.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "at",
+        "from_seat",
+        "to_seat",
+        "kind",
+        "body_md",
+        "lemma_refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/HubMessageId"
+        },
+        "at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "from_seat": {
+          "$ref": "#/$defs/SeatId"
+        },
+        "to_seat": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SeatId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "const": "public"
+        },
+        "body_md": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "lemma_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LemmaId"
+          },
+          "maxItems": 20
+        }
+      }
+    },
+    "GraveyardEntry": {
+      "title": "GraveyardEntry",
+      "description": "Something that died. checker_backed is true only when a Lean check (usually a refutation) killed it; otherwise the ruling is a seat's opinion and the site labels it that way.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "lemma_id",
+        "approach_id",
+        "program_id",
+        "title",
+        "claimed",
+        "killed_by",
+        "ruled_by",
+        "checker_backed",
+        "reason_md",
+        "left_behind_md",
+        "at",
+        "runner_url"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/GraveyardId"
+        },
+        "lemma_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LemmaId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approach_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApproachId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "program_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProgramId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "claimed": {
+          "$ref": "#/$defs/PlainText"
+        },
+        "killed_by": {
+          "$ref": "#/$defs/GraveyardCause"
+        },
+        "ruled_by": {
+          "$ref": "#/$defs/Actor"
+        },
+        "checker_backed": {
+          "type": "boolean"
+        },
+        "reason_md": {
+          "$ref": "#/$defs/Markdown"
+        },
+        "left_behind_md": {
+          "$ref": "#/$defs/Markdown"
+        },
+        "at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "runner_url": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ChainRung": {
+      "title": "ChainRung",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rung",
+        "lemma_id",
+        "title",
+        "status",
+        "faithfulness"
+      ],
+      "properties": {
+        "rung": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lemma_id": {
+          "$ref": "#/$defs/LemmaId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "status": {
+          "$ref": "#/$defs/LemmaStatus"
+        },
+        "faithfulness": {
+          "$ref": "#/$defs/Faithfulness"
+        }
+      }
+    },
+    "HardLink": {
+      "title": "HardLink",
+      "description": "The step a program is actually stuck on, why it is hard, and the attempts that died on it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lemma_id",
+        "title",
+        "why_hard_md",
+        "attempts_died"
+      ],
+      "properties": {
+        "lemma_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LemmaId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "why_hard_md": {
+          "$ref": "#/$defs/Markdown"
+        },
+        "attempts_died": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GraveyardEntry"
+          }
+        }
+      }
+    },
+    "CheckLimits": {
+      "title": "CheckLimits",
+      "description": "Fixed limits the checker applies, repeated in every step so an agent never has to guess.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_s",
+        "memory_mb",
+        "max_file_bytes",
+        "max_numeral_digits",
+        "allowed_axioms"
+      ],
+      "properties": {
+        "time_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory_mb": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_file_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_numeral_digits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "allowed_axioms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "propext",
+              "Classical.choice",
+              "Quot.sound"
+            ]
+          }
+        }
+      }
+    },
+    "NegatedTwin": {
+      "title": "NegatedTwin",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lemma_id",
+        "statement"
+      ],
+      "properties": {
+        "lemma_id": {
+          "$ref": "#/$defs/LemmaId"
+        },
+        "statement": {
+          "$ref": "#/$defs/LeanStatement"
+        }
+      }
+    },
+    "Step": {
+      "title": "Step",
+      "description": "A step as the desk hands it to an agent. Every prose field is data, never an instruction. statement is the canonical statement of statements/<id>.txt. module is MassGap.Outside.<stem> and is also the required theorem name. template is the complete step file for file_path built by stepFileTemplate(): the fixed header of proofs/CONVENTIONS.md section 4.1 with the recorded imports, then theorem <module> : <statement> := by and a sorry line the agent replaces. value_template and search_range are descriptive metadata for kinds value and search; the recorded statement is always concrete.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lemma_id",
+        "program_id",
+        "kind",
+        "level",
+        "status",
+        "faithfulness",
+        "title",
+        "plain_sentence",
+        "statement",
+        "statement_path",
+        "file_path",
+        "module",
+        "imports",
+        "context_md",
+        "sketch_md",
+        "failed_attempts",
+        "negated_twin",
+        "template",
+        "value_template",
+        "search_range",
+        "parent_ids",
+        "points",
+        "limits"
+      ],
+      "properties": {
+        "lemma_id": {
+          "$ref": "#/$defs/LemmaId"
+        },
+        "program_id": {
+          "$ref": "#/$defs/ProgramId"
+        },
+        "kind": {
+          "$ref": "#/$defs/LemmaKind"
+        },
+        "level": {
+          "$ref": "#/$defs/LemmaLevel"
+        },
+        "status": {
+          "$ref": "#/$defs/LemmaStatus"
+        },
+        "faithfulness": {
+          "$ref": "#/$defs/Faithfulness"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "plain_sentence": {
+          "$ref": "#/$defs/PlainText"
+        },
+        "statement": {
+          "$ref": "#/$defs/LeanStatement"
+        },
+        "statement_path": {
+          "$ref": "#/$defs/StatementPath"
+        },
+        "file_path": {
+          "$ref": "#/$defs/LeanFilePath"
+        },
+        "module": {
+          "$ref": "#/$defs/LeanModule"
+        },
+        "imports": {
+          "$ref": "#/$defs/StepImports"
+        },
+        "context_md": {
+          "$ref": "#/$defs/Markdown"
+        },
+        "sketch_md": {
+          "$ref": "#/$defs/Markdown"
+        },
+        "failed_attempts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FailedAttempt"
+          },
+          "maxItems": 100
+        },
+        "negated_twin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NegatedTwin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "template": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40000
+        },
+        "value_template": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 20000
+        },
+        "search_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SearchRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parent_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LemmaId"
+          }
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limits": {
+          "$ref": "#/$defs/CheckLimits"
+        }
+      }
+    },
+    "Lease": {
+      "title": "Lease",
+      "description": "A lease on one step. Beat every beat_every_s seconds; the lease expires ttl_s seconds after the last beat. points is frozen when the lease is created.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "lemma_id",
+        "handle",
+        "kind",
+        "state",
+        "created_at",
+        "last_beat_at",
+        "expires_at",
+        "points",
+        "beat_every_s",
+        "ttl_s"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/LeaseId"
+        },
+        "lemma_id": {
+          "$ref": "#/$defs/LemmaId"
+        },
+        "handle": {
+          "$ref": "#/$defs/Handle"
+        },
+        "kind": {
+          "$ref": "#/$defs/LemmaKind"
+        },
+        "state": {
+          "$ref": "#/$defs/LeaseState"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "last_beat_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "beat_every_s": {
+          "type": "integer",
+          "const": 300
+        },
+        "ttl_s": {
+          "type": "integer",
+          "const": 900
+        }
+      }
+    },
+    "ProgramOverview": {
+      "title": "ProgramOverview",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "key",
+        "title",
+        "goal_plain",
+        "aims_at",
+        "status",
+        "order",
+        "target_lemma_id",
+        "hard_link_lemma_id",
+        "seats",
+        "counts",
+        "lemmas_total",
+        "chain_length",
+        "chain_checked"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ProgramId"
+        },
+        "key": {
+          "$ref": "#/$defs/ProgramId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "goal_plain": {
+          "$ref": "#/$defs/PlainText"
+        },
+        "aims_at": {
+          "$ref": "#/$defs/PlainText"
+        },
+        "status": {
+          "$ref": "#/$defs/ProgramStatus"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_lemma_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LemmaId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hard_link_lemma_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LemmaId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "seats": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SeatId"
+          }
+        },
+        "counts": {
+          "$ref": "#/$defs/StatusCounts"
+        },
+        "lemmas_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chain_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chain_checked": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ProgramTarget": {
+      "title": "ProgramTarget",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "lemma_id"
+      ],
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/PlainText"
+        },
+        "lemma_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LemmaId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "StatusLine": {
+      "title": "StatusLine",
+      "description": "One public line from a seat (news or strategy).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seat",
+        "at",
+        "text"
+      ],
+      "properties": {
+        "seat": {
+          "$ref": "#/$defs/SeatId"
+        },
+        "at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        }
+      }
+    },
+    "SeatCounts": {
+      "title": "SeatCounts",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "messages_public",
+        "messages_operational",
+        "steps_stated",
+        "steps_checked",
+        "refutations",
+        "prs_opened",
+        "sessions"
+      ],
+      "properties": {
+        "messages_public": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "messages_operational": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "steps_stated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "steps_checked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refutations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "prs_opened": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sessions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "SeatSummary": {
+      "title": "SeatSummary",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "title",
+        "program_id",
+        "active",
+        "doing",
+        "last_active_at",
+        "budget_usd_day",
+        "spent_usd_today",
+        "counts"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/SeatId"
+        },
+        "role": {
+          "$ref": "#/$defs/SeatRole"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "program_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProgramId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "doing": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 300
+        },
+        "last_active_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "budget_usd_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "spent_usd_today": {
+          "type": "number",
+          "minimum": 0
+        },
+        "counts": {
+          "$ref": "#/$defs/SeatCounts"
+        }
+      }
+    },
+    "Series36": {
+      "title": "Series36",
+      "description": "36 hourly buckets, oldest first. Index 35 is the hour that ends at the file's series_end.",
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 36,
+      "maxItems": 36
+    },
+    "BoardRow": {
+      "title": "BoardRow",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "handle",
+        "avatar_url",
+        "points",
+        "proofs",
+        "refutations",
+        "last_proof_at",
+        "series"
+      ],
+      "properties": {
+        "rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "handle": {
+          "$ref": "#/$defs/Handle"
+        },
+        "avatar_url": {
+          "$ref": "#/$defs/HttpsUrl"
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proofs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refutations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_proof_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "series": {
+          "$ref": "#/$defs/Series36"
+        }
+      }
+    },
+    "ContributorStep": {
+      "title": "ContributorStep",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lemma_id",
+        "title",
+        "kind",
+        "points",
+        "at",
+        "runner_url"
+      ],
+      "properties": {
+        "lemma_id": {
+          "$ref": "#/$defs/LemmaId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "proof",
+            "refutation"
+          ]
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "runner_url": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ContributorRecord": {
+      "title": "ContributorRecord",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "handle",
+        "avatar_url",
+        "fleet",
+        "first_proof_at",
+        "last_proof_at",
+        "proofs",
+        "refutations",
+        "points",
+        "x_handle",
+        "linkedin",
+        "rank",
+        "series_36h",
+        "steps"
+      ],
+      "properties": {
+        "handle": {
+          "$ref": "#/$defs/Handle"
+        },
+        "avatar_url": {
+          "$ref": "#/$defs/HttpsUrl"
+        },
+        "fleet": {
+          "type": "boolean",
+          "description": "true for the fleet's own builder accounts, which never appear on the public board"
+        },
+        "first_proof_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "last_proof_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "proofs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refutations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "x_handle": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_]{1,15}$"
+        },
+        "linkedin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "series_36h": {
+          "$ref": "#/$defs/Series36"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContributorStep"
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "StepImport": {
+      "title": "StepImport",
+      "description": "A module a step may import (proofs/CONVENTIONS.md section 5). MassGap.Outside modules are allowed only for checked steps on the main branch; the desk enforces that part.",
+      "type": "string",
+      "pattern": "^(MassGap\\.Defs|MassGap\\.Statement|MassGap\\.Library(\\.[A-Za-z0-9_]+)+|MassGap\\.Outside\\.L_[a-z][A-Za-z0-9]{0,15}_[0-9]{4,6}|PublicTheory|PublicWilson|ChallengeSpec|Mathlib(\\.[A-Za-z0-9_]+)*)$"
+    },
+    "StepImports": {
+      "title": "StepImports",
+      "description": "Recorded imports in recorded order. MassGap.Defs is always first.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "prefixItems": [
+        {
+          "const": "MassGap.Defs"
+        }
+      ],
+      "items": {
+        "$ref": "#/$defs/StepImport"
+      }
+    }
+  }
+}

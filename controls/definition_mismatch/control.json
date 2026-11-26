@@ -1,0 +1,16 @@
+{
+  "name": "definition_mismatch",
+  "lemma_id": "L-ctl-0003",
+  "description": "Copies the recorded statement text exactly but shadows SpectrumCondition with a private definition that is always true, so the same text means something weaker.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0003.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "definition_mismatch"
+  }
+}

@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels), theory.Axioms → ∀ state : H.carrier, theory.energyMomentum.projection {0} state = ⟪vacuumVector theory, state⟫_ℂ • vacuumVector theory

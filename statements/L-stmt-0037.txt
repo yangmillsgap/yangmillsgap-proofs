@@ -1,0 +1,1 @@
+∀ (H : HilbertSpace) (Labels : FieldLabels) (theory : WightmanTheory H Labels) (Δ : ℝ), theory.Axioms → HamiltonianGapAt theory Δ → MassGapAt theory Δ

@@ -1,0 +1,1 @@
+∀ (g : GaugeGroup) (C : WilsonFamily g), (∀ p : ℕ → ℕ, StrictMono p → ∃ q : ℕ → ℕ, StrictMono q ∧ ∃ T : Hierarchy C, T.Properties (p ∘ q)) → SubsequenceIndependent C → InfiniteVolumeLimitConverges C

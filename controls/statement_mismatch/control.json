@@ -1,0 +1,16 @@
+{
+  "name": "statement_mismatch",
+  "lemma_id": "L-ctl-0002",
+  "description": "Proves 0 + n = n under the right name while the recorded statement is n + 0 = n.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0002.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "statement_mismatch"
+  }
+}

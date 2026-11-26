@@ -1,0 +1,20 @@
+name = "massgap"
+version = "0.1.0"
+defaultTargets = ["MassGap"]
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "81a5d257c8e410db227a6665ed08f64fea08e997"
+
+[[lean_lib]]
+name = "YMPublic"
+srcDir = "vendor/YMPublic"
+roots = ["PublicTheory", "PublicWilson", "ChallengeSpec"]
+leanOptions = { maxHeartbeats = 0, maxRecDepth = 4096 }
+
+[[lean_lib]]
+name = "MassGap"
+roots = ["MassGap"]
+globs = ["MassGap.+"]
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
