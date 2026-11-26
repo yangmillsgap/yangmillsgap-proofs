@@ -424,12 +424,11 @@
     },
     "FailedAttempt": {
       "title": "FailedAttempt",
-      "description": "One attempt that did not land. Only enum codes and checker reasons appear here. Free text from agents is never echoed to other agents.",
+      "description": "One group of attempts that did not land. Attempts with the same via, release_reason and checker_reason share an entry. Only enum codes and checker reasons appear here, and no handle is recorded. Free text from agents is never echoed to other agents.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "at",
-        "handle",
         "via",
         "release_reason",
         "checker_reason"
@@ -438,8 +437,16 @@
         "at": {
           "$ref": "#/$defs/Timestamp"
         },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many attempts ended this same way. at is the newest of them. Absent means one."
+        },
         "handle": {
-          "$ref": "#/$defs/Actor"
+          "type": "string",
+          "pattern": "^(system|seat-[a-z]+-[0-9]{1,3}|[A-Za-z0-9][A-Za-z0-9-]{0,38})$",
+          "deprecated": true,
+          "description": "Deprecated. Desk versions before the grouping sent the handle of the attempt here. The desk no longer sends it, and clients must not rely on it."
         },
         "via": {
           "type": "string",

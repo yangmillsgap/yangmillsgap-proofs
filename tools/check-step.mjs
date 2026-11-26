@@ -17,6 +17,7 @@ import {
 
 const toolsDir = path.dirname(fileURLToPath(import.meta.url));
 const flagNames = ["in-place", "keep", "quiet", "build-imports"];
+const semanticLine = "we are comparing the theorem with the recorded statement and replaying it in the kernel; this loads the recorded imports again and prints nothing until it is done, which takes 1 to 6 minutes";
 
 function finish(result, options) {
   if (options.json != undefined) {
@@ -48,7 +49,7 @@ function baseResult(lemmaid, filepath) {
 function semanticOnly(options, workdir, lint, statements, proofs, started, budget, result) {
   const thePaths = stepPathsOf(lint.lemmaId);
   if (options["build-imports"] == true) {
-    console.log("we are building the recorded imports from the trusted sources: " + lint.imports.join(", "));
+    console.log("we are building the recorded imports from the trusted sources: " + lint.imports.join(", ") + "; when they are not built yet this takes several minutes and prints nothing until it is done");
     const theImports = buildModules(workdir, lint.imports, remainingSeconds(started, budget));
     if (theImports.ok == false) {
       result.verdict = "FAULT";
@@ -58,6 +59,7 @@ function semanticOnly(options, workdir, lint, statements, proofs, started, budge
   }
   const theOlean = path.resolve(options.olean ?? path.join(workdir, thePaths.olean_path));
   result.phase = "semantic";
+  console.log(semanticLine);
   const theCheckLemma = path.join(proofs, "CheckLemma.lean");
   const theStatementFile = path.join(statements, lint.lemmaId + ".txt");
   const theSemantic = semanticCheck(workdir, theCheckLemma, lint.lemmaId, theStatementFile, theOlean, lint.imports, remainingSeconds(started, budget));
@@ -137,7 +139,7 @@ export function runCheck(options) {
       return semanticOnly(options, theWorkdir, theLint, theStatements, theProofs, theStarted, theBudget, theResult);
     }
     theResult.phase = "build";
-    console.log("we are building " + thePaths.module + ", this usually takes one to two minutes");
+    console.log("we are building " + thePaths.module + "; a short file takes one to two minutes, most of it loading Mathlib, and a long proof takes longer");
     const theBuild = buildStep(theWorkdir, theLemmaId, remainingSeconds(theStarted, theBudget));
     console.log("the build finished in " + Math.round(theBuild.seconds) + " s");
     if (theBuild.ok == false) {
@@ -161,7 +163,7 @@ export function runCheck(options) {
       return theResult;
     }
     theResult.phase = "semantic";
-    console.log("we are comparing the theorem with the recorded statement and replaying it in the kernel");
+    console.log(semanticLine);
     const theCheckLemma = path.join(theProofs, "CheckLemma.lean");
     const theStatementFile = path.join(theStatements, theLemmaId + ".txt");
     const theSemantic = semanticCheck(theWorkdir, theCheckLemma, theLemmaId, theStatementFile, theOlean, theLint.imports, remainingSeconds(theStarted, theBudget));

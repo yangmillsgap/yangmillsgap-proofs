@@ -33,14 +33,14 @@ The Yang–Mills mass gap is open. Nothing in this repository claims otherwise, 
 
 ## Checking a step on your machine
 
-You need git, `gh` signed in, elan and Node 20 or newer.
+You need git, elan, curl and Node 20 or newer, and `gh` signed in before you submit. `setup` asks `gh` for your GitHub login; `tools/mg.sh setup --handle <login>` or `MG_HANDLE=<login>` gives it directly, and then setup runs without `gh`.
 
 ```sh
 tools/mg.sh setup
 tools/mg.sh check L-lib-0000
 ```
 
-`setup` installs the pinned toolchain, downloads the Mathlib cache and builds `MassGap.Defs`. `check` runs the same three stages as CI, in this checkout and without the container. The last line it prints is the verdict.
+`setup` installs the pinned toolchain, downloads the prebuilt cache over HTTPS with curl, downloads the Mathlib cache and builds `MassGap.Defs` and `MassGap.Statement`. `check` runs the same three stages as CI, in this checkout and without the container. The last line it prints is the verdict. When the step has a live lease, `check` and `submit` keep it alive with a background heartbeat every 5 minutes for as long as Lean runs, and print a progress line about once a minute.
 
 To check any file by hand:
 
@@ -115,6 +115,7 @@ Measured on an arm64 Mac with 16 GB of memory while other heavy jobs were runnin
 | Building the trivial step `L-lib-0000` | 40 to 65 s |
 | Semantic check of that step | about 45 to 90 s |
 | Whole check of that step in a sandbox | 2 min 51 s |
+| `tools/mg.sh check L-stmt-0036` (imports `MassGap.Statement`) | 5 min 49 s: build 72 s, semantic stage about 4.5 min |
 
 Most of a check is spent loading Mathlib. Details are in `BUILD_NOTES.md`.
 
@@ -124,7 +125,7 @@ Most of a check is spent loading Mathlib. Details are in `BUILD_NOTES.md`.
 * Run the `image` workflow once and make the `-check` package on GHCR public, so pull requests from forks can pull it.
 * Fork pull requests from first-time contributors wait for approval under GitHub's default setting. Decide whether to relax it for this repository.
 * Protect `main`, and label your own maintenance pull requests `not-a-step` so the verdict job leaves them alone.
-* Upload the prebuilt cache. `tools/make-prebuilt.sh` writes `dist/massgap-lake-build-<toolchain>.tar.gz` and prints its SHA-256 and size; upload it to the release named in `tools/prebuilt.json` and update `sha256` and `bytes` there if you rebuilt it. `setup` downloads it and checks the hash before unpacking. `MG_PREBUILT_FILE=<path> tools/mg.sh setup` uses a local copy instead, still checked against the recorded hash.
+* The prebuilt cache is the asset of release `prebuilt-v4.32.0`. If you rebuild it, `tools/make-prebuilt.sh` writes `dist/massgap-lake-build-<toolchain>.tar.gz` and prints its SHA-256 and size; upload it to the release named in `tools/prebuilt.json` and update `sha256` and `bytes` there. The script stops if the staging tree or the archive holds `.lake/mg` or `.lake/mglogs`, where a contributor's handle and client keys live. `setup` downloads the file with curl only from `https://github.com/<upstream>/releases/download/<tag>/<asset>`, checks the hash before unpacking and builds locally if the download fails. `MG_PREBUILT_FILE=<path> tools/mg.sh setup` uses a local copy instead, still checked against the recorded hash.
 * The site address (`yangmillsgap.com`), the GitHub organisation (`yangmillsgap`, provisional) and the site name (`yangmillsgap`) are set once, in `tools/lib/config.mjs`. Changing the organisation there moves the upstream repository and the prebuilt download together. `MG_DESK` overrides the desk address and `MG_UPSTREAM` the upstream repository for testing.
 
 ## Licence

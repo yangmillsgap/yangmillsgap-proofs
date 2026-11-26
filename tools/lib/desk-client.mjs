@@ -11,12 +11,21 @@ export const userAgent = "massgap-mg/0.1";
 export const maxResponseBytes = 2097152;
 export const levels = ["warmup", "solid", "hard", "open"];
 export const kinds = ["prove", "refute", "search", "value", "cut"];
+export const leaseIdPattern = /^ls-[0-9a-f]{32}$/;
+export const prNumberPattern = /^[1-9][0-9]{0,8}$/;
 export const releaseReasons = ["hypothesis_too_weak", "missing_lemma", "statement_seems_false", "does_not_elaborate", "out_of_time", "other", "reduced", "submitted"];
 
 export class Stopped extends Error {
   constructor(message) {
     super(message);
     this.name = "Stopped";
+  }
+}
+
+export class Unreachable extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "Unreachable";
   }
 }
 
@@ -171,4 +180,64 @@ export function indentData(text) {
     theOut.push("  | " + theLines[n]);
   }
   return theOut.join("\n");
+}
+
+export function attemptLine(attempt) {
+  const theWhy = attempt.release_reason ?? plainData(attempt.checker_reason, 300);
+  const theLine = "  | " + attempt.at + " via " + attempt.via + ": " + theWhy;
+  const theCounted = Number.isInteger(attempt.count) == true && attempt.count > 1;
+  if (theCounted == true) {
+    return theLine + " (" + attempt.count + " times)";
+  }
+  return theLine;
+}
+
+export function releaseArguments(options) {
+  let theLease = options.positional[1];
+  let theReason = options.positional[2] ?? options.reason;
+  if (theLease != undefined && leaseIdPattern.test(theLease) == false && theReason == undefined) {
+    theReason = theLease;
+    theLease = undefined;
+  }
+  const theChoices = releaseReasons.slice(0, 7).join(", ");
+  if (releaseReasons.indexOf(theReason) == -1) {
+    return { lease: theLease, reason: null, pr: null, problem: "give a reason: " + theChoices + ", or submitted --pr <number> if you opened the pull request yourself" };
+  }
+  if (theReason != "submitted") {
+    if (options.pr != undefined) {
+      return { lease: theLease, reason: theReason, pr: null, problem: "--pr only goes with the reason submitted" };
+    }
+    return { lease: theLease, reason: theReason, pr: null, problem: null };
+  }
+  if (options.pr == undefined) {
+    return { lease: theLease, reason: theReason, pr: null, problem: "submitted needs the number of the pull request you opened, as in tools/mg.sh release <lease> submitted --pr 123; if you have not opened one, run tools/mg.sh submit, which opens it and releases for you" };
+  }
+  const thePrText = String(options.pr);
+  if (prNumberPattern.test(thePrText) == false) {
+    return { lease: theLease, reason: theReason, pr: null, problem: "--pr takes the number of your pull request, a positive whole number such as 123" };
+  }
+  const theNumber = Number.parseInt(thePrText, 10);
+  return { lease: theLease, reason: theReason, pr: theNumber, problem: null };
+}
+
+export async function deskRequest(origin, method, route, query, body, schemaname, clientkey) {
+  const theQueryText = buildQuery(query);
+  const theUrl = origin + route + (theQueryText.length > 0 ? "?" + theQueryText : "");
+  const theHeaders = { accept: "application/json", "user-agent": userAgent };
+  if (clientkey != null) {
+    theHeaders.authorization = "Bearer " + clientkey;
+  }
+  let theBody = undefined;
+  if (body != null) {
+    theHeaders["content-type"] = "application/json";
+    theBody = JSON.stringify(body);
+  }
+  let theResponse = null;
+  try {
+    theResponse = await fetch(theUrl, { method: method, headers: theHeaders, body: theBody, redirect: "error", signal: AbortSignal.timeout(30000) });
+  } catch (error) {
+    throw new Unreachable(error.message);
+  }
+  const theText = await theResponse.text();
+  return parseDeskReply(theResponse.status, theResponse.headers.get("content-type"), theText, schemaname);
 }

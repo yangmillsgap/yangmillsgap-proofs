@@ -12,25 +12,28 @@ import { validateAgainst } from "./lib/json-check.mjs";
 import {
   Stopped,
   DeskRefused,
-  userAgent,
-  buildQuery,
+  Unreachable,
+  deskRequest,
+  leaseIdPattern,
+  attemptLine,
+  releaseArguments,
   nextQuery,
-  parseDeskReply,
   checkLeasedStep,
   plainData,
   indentData,
   releaseReasons
 } from "./lib/desk-client.mjs";
 import { runCheck } from "./check-step.mjs";
-import { runSetup } from "./lib/setup.mjs";
+import { writeStatementFiles, ensureStatement, StatementUnavailable } from "./lib/statement-source.mjs";
+import { runSetup, handleOverride } from "./lib/setup.mjs";
+import { readStateFile, updateStateFile, clientKeyOf, clientKeyPattern, firstLeaseForHandle, leaseChange } from "./lib/state.mjs";
+import { keepAliveCommand, startHeartbeats, stopHeartbeats, runKeepAlive } from "./lib/heartbeat.mjs";
 
 const toolsDir = path.dirname(fileURLToPath(import.meta.url));
 const proofsRoot = path.resolve(toolsDir, "..");
 const stateDir = path.join(proofsRoot, ".lake", "mg");
-const stateFile = path.join(stateDir, "state.json");
 const flagNames = ["hard", "another", "allow-public-email", "help"];
 const commands = ["setup", "next", "beat", "check", "submit", "release", "value", "status"];
-const clientKeyPattern = /^ck-[0-9a-f]{32}$/;
 
 function say(line) {
   console.log(line);
@@ -43,32 +46,12 @@ function stop(reason) {
 }
 
 function readState() {
-  if (fs.existsSync(stateFile) == false) {
-    return { handle: null, leases: {} };
-  }
-  const theText = fs.readFileSync(stateFile, "utf8");
-  const theState = JSON.parse(theText);
-  if (theState.leases == undefined) {
-    theState.leases = {};
-  }
-  return theState;
+  return readStateFile(stateDir);
 }
 
-function writeState(state) {
-  fs.mkdirSync(stateDir, { recursive: true });
-  fs.writeFileSync(stateFile, JSON.stringify(state, null, 2) + "\n", { mode: 0o600 });
-  fs.chmodSync(stateFile, 0o600);
-}
-
-function clientKeyOf(state) {
-  if (state.client_keys == undefined || state.handle == null) {
-    return null;
-  }
-  const theKey = state.client_keys[state.handle];
-  if (typeof theKey != "string" || clientKeyPattern.test(theKey) == false) {
-    return null;
-  }
-  return theKey;
+function applyChange(state, change) {
+  change(state);
+  updateStateFile(stateDir, change);
 }
 
 function rememberClientKey(state, handle, reply) {
@@ -76,11 +59,13 @@ function rememberClientKey(state, handle, reply) {
   if (typeof theKey != "string" || clientKeyPattern.test(theKey) == false) {
     return;
   }
-  if (state.client_keys == undefined) {
-    state.client_keys = {};
+  function change(fresh) {
+    if (fresh.client_keys == undefined) {
+      fresh.client_keys = {};
+    }
+    fresh.client_keys[handle] = theKey;
   }
-  state.client_keys[handle] = theKey;
-  writeState(state);
+  applyChange(state, change);
   say("the desk gave this machine a key for " + handle + ", kept in .lake/mg/state.json; keep that file private, because the key is what lets you beat and release your leases");
 }
 
@@ -96,29 +81,14 @@ async function deskCall(method, route, query, body, schemaname, clientkey) {
   if (isDeskConfigured() == false) {
     stop("the desk address is still a placeholder, the repository is not configured for a live desk");
   }
-  const theQueryText = buildQuery(query);
-  const theUrl = deskOrigin() + route + (theQueryText.length > 0 ? "?" + theQueryText : "");
-  const theHeaders = { accept: "application/json", "user-agent": userAgent };
-  if (clientkey != null) {
-    theHeaders.authorization = "Bearer " + clientkey;
-  }
-  let theBody = undefined;
-  if (body != null) {
-    theHeaders["content-type"] = "application/json";
-    theBody = JSON.stringify(body);
-  }
   for (let n = 0; n < 2; n++) {
-    let theResponse = null;
     try {
-      theResponse = await fetch(theUrl, { method: method, headers: theHeaders, body: theBody, redirect: "error", signal: AbortSignal.timeout(30000) });
+      return await deskRequest(deskOrigin(), method, route, query, body, schemaname, clientkey);
     } catch (error) {
-      say("we could not reach the desk at " + deskOrigin() + ": " + error.message);
-      process.exit(1);
-    }
-    const theText = await theResponse.text();
-    try {
-      return parseDeskReply(theResponse.status, theResponse.headers.get("content-type"), theText, schemaname);
-    } catch (error) {
+      if (error instanceof Unreachable) {
+        say("we could not reach the desk at " + deskOrigin() + ": " + error.message);
+        process.exit(1);
+      }
       if (error instanceof Stopped) {
         stop(error.message);
       }
@@ -174,7 +144,7 @@ function liveLeaseIds(state) {
 
 function pickLease(state, given) {
   if (given != undefined) {
-    if (/^ls-[0-9a-f]{32}$/.test(given) == false) {
+    if (leaseIdPattern.test(given) == false) {
       say(given + " is not a lease id");
       process.exit(1);
     }
@@ -199,9 +169,7 @@ function pickLease(state, given) {
 
 function saveStep(step) {
   const theDir = path.join(stateDir, "statements");
-  fs.mkdirSync(theDir, { recursive: true });
-  fs.writeFileSync(path.join(theDir, step.lemma_id + ".txt"), step.statement + "\n");
-  fs.writeFileSync(path.join(theDir, step.lemma_id + ".imports"), step.imports.join("\n") + "\n");
+  writeStatementFiles(theDir, step.lemma_id, step.statement, step.imports);
   const theStepsDir = path.join(stateDir, "steps");
   fs.mkdirSync(theStepsDir, { recursive: true });
   fs.writeFileSync(path.join(theStepsDir, step.lemma_id + ".json"), JSON.stringify(step, null, 2) + "\n");
@@ -234,9 +202,8 @@ function printStep(lease, step) {
   if (step.failed_attempts.length > 0) {
     say("earlier attempts that did not land:");
     for (let n = 0; n < step.failed_attempts.length && n < 20; n++) {
-      const theAttempt = step.failed_attempts[n];
-      const theWhy = theAttempt.release_reason ?? plainData(theAttempt.checker_reason, 300);
-      say("  | " + theAttempt.at + " via " + theAttempt.via + ": " + theWhy);
+      const theLine = attemptLine(step.failed_attempts[n]);
+      say(theLine);
     }
   }
   say("");
@@ -275,16 +242,18 @@ async function commandNext(options) {
   const theLease = theReply.lease;
   const theStep = theReply.step;
   saveStep(theStep);
-  theState.leases[theLease.id] = {
-    lemma_id: theStep.lemma_id,
-    file_path: theStep.file_path,
-    kind: theStep.kind,
-    state: "live",
-    created_at: theLease.created_at,
-    last_beat_at: theLease.last_beat_at,
-    expires_at: theLease.expires_at
-  };
-  writeState(theState);
+  function addLease(fresh) {
+    fresh.leases[theLease.id] = {
+      lemma_id: theStep.lemma_id,
+      file_path: theStep.file_path,
+      kind: theStep.kind,
+      state: "live",
+      created_at: theLease.created_at,
+      last_beat_at: theLease.last_beat_at,
+      expires_at: theLease.expires_at
+    };
+  }
+  applyChange(theState, addLease);
   const theTarget = path.join(proofsRoot, theStep.file_path);
   if (fs.existsSync(theTarget) == false) {
     fs.mkdirSync(path.dirname(theTarget), { recursive: true });
@@ -301,8 +270,19 @@ async function commandNext(options) {
     }
   }
   printStep(theLease, theStep);
+  const theFirst = firstLeaseForHandle(theState, theHandle);
+  if (theFirst == false) {
+    return;
+  }
   say("");
   say("tell your owner: Joined the Yang–Mills mass gap effort. Follow my progress: " + siteOrigin() + "/a/" + theHandle);
+  function rememberTold(fresh) {
+    if (fresh.joined_told == undefined) {
+      fresh.joined_told = {};
+    }
+    fresh.joined_told[theHandle] = true;
+  }
+  applyChange(theState, rememberTold);
 }
 
 async function beatLease(state, leaseid) {
@@ -311,17 +291,14 @@ async function beatLease(state, leaseid) {
     theReply = await deskCall("POST", "/desk/beat", { lease: leaseid }, null, "deskBeatResponse", clientKeyOf(state));
   } catch (error) {
     if (error instanceof DeskRefused && error.code == "gone") {
-      state.leases[leaseid].state = "gone";
-      writeState(state);
+      applyChange(state, leaseChange(leaseid, { state: "gone" }));
     }
     reportRefusal(error);
   }
   if (theReply.lease_id != leaseid) {
     stop("the desk answered a beat for a different lease");
   }
-  state.leases[leaseid].last_beat_at = theReply.last_beat_at;
-  state.leases[leaseid].expires_at = theReply.expires_at;
-  writeState(state);
+  applyChange(state, leaseChange(leaseid, { last_beat_at: theReply.last_beat_at, expires_at: theReply.expires_at }));
   say("the lease " + leaseid + " on " + state.leases[leaseid].lemma_id + " is live until " + theReply.expires_at);
   return theReply;
 }
@@ -348,6 +325,25 @@ function statementsDirFor(lemmaid) {
     return path.join(proofsRoot, "statements");
   }
   return path.join(stateDir, "statements");
+}
+
+async function restoreStatement(lemmaid) {
+  if (isDeskConfigured() == false) {
+    return;
+  }
+  const theRepoDir = path.join(proofsRoot, "statements");
+  const theSaved = path.join(stateDir, "statements");
+  try {
+    const theResult = await ensureStatement({ lemmaId: lemmaid, repoDir: theRepoDir, targetDir: theSaved, reuse: true, origin: deskOrigin() });
+    if (theResult.source == "desk") {
+      say("statements/" + lemmaid + ".txt is not in this clone, so we read the recorded statement from the desk into .lake/mg/statements, as CI does");
+    }
+  } catch (error) {
+    if ((error instanceof StatementUnavailable) == false) {
+      throw error;
+    }
+    say("we could not read the recorded statement of " + lemmaid + " from the desk: " + error.message);
+  }
 }
 
 function lemmaForCheck(state, given) {
@@ -391,11 +387,14 @@ function checkFingerprint(lemmaid) {
 }
 
 function rememberAccepted(state, lemmaid) {
-  if (state.accepted == undefined) {
-    state.accepted = {};
+  const theRecord = { fingerprint: checkFingerprint(lemmaid), at: new Date().toISOString() };
+  function change(fresh) {
+    if (fresh.accepted == undefined) {
+      fresh.accepted = {};
+    }
+    fresh.accepted[lemmaid] = theRecord;
   }
-  state.accepted[lemmaid] = { fingerprint: checkFingerprint(lemmaid), at: new Date().toISOString() };
-  writeState(state);
+  applyChange(state, change);
 }
 
 function acceptedEarlier(state, lemmaid) {
@@ -423,10 +422,36 @@ function checkLemma(lemmaid, phase) {
 async function beatBeforeCheck(state, lemmaid) {
   const theLeaseId = liveLeaseFor(state, lemmaid);
   if (theLeaseId == null || isDeskConfigured() == false) {
-    return;
+    return null;
   }
   say("we are sending a heartbeat for " + theLeaseId + " first, because the check can take several minutes");
   await beatLease(state, theLeaseId);
+  return theLeaseId;
+}
+
+async function checkWithHeartbeats(leaseid, lemmaid, phase) {
+  let theKeeper = null;
+  if (phase != "lint" && leaseid != null && isDeskConfigured() == true) {
+    theKeeper = startHeartbeats(path.join(toolsDir, "mg.mjs"), proofsRoot, leaseid, say);
+  }
+  try {
+    return checkLemma(lemmaid, phase);
+  } finally {
+    await stopHeartbeats(theKeeper);
+  }
+}
+
+function leaseWentDuringCheck(leaseid) {
+  if (leaseid == null) {
+    return false;
+  }
+  const theFresh = readState();
+  const theLease = theFresh.leases[leaseid];
+  if (theLease == undefined || theLease.state != "gone") {
+    return false;
+  }
+  say("the desk ended the lease " + leaseid + " while the check ran, so the step is no longer yours; run tools/mg.sh next for new work");
+  return true;
 }
 
 async function commandCheck(options) {
@@ -436,8 +461,10 @@ async function commandCheck(options) {
     say(theLemmaId + " is not a lemma id");
     process.exit(1);
   }
-  await beatBeforeCheck(theState, theLemmaId);
-  const theResult = checkLemma(theLemmaId, "all");
+  await restoreStatement(theLemmaId);
+  const theLeaseId = await beatBeforeCheck(theState, theLemmaId);
+  const theResult = await checkWithHeartbeats(theLeaseId, theLemmaId, "all");
+  leaseWentDuringCheck(theLeaseId);
   if (theResult.verdict == "ACCEPTED") {
     rememberAccepted(theState, theLemmaId);
     say("ACCEPTED");
@@ -470,6 +497,7 @@ async function commandSubmit(options) {
   const theLeaseId = pickLease(theState, options.positional[1]);
   const theLemmaId = theState.leases[theLeaseId].lemma_id;
   const thePaths = stepPathsOf(theLemmaId);
+  await restoreStatement(theLemmaId);
   const theEmail = run("git", ["config", "user.email"], true).stdout;
   if (theEmail.endsWith("@users.noreply.github.com") == false && options["allow-public-email"] != true) {
     say("your git email is " + theEmail + " and it would become public in the commit");
@@ -486,7 +514,11 @@ async function commandSubmit(options) {
   } else {
     say("we are checking " + theLemmaId + " before submitting it");
   }
-  const theResult = checkLemma(theLemmaId, thePhase);
+  const theResult = await checkWithHeartbeats(theLeaseId, theLemmaId, thePhase);
+  const theWent = leaseWentDuringCheck(theLeaseId);
+  if (theWent == true) {
+    process.exit(3);
+  }
   if (theResult.verdict != "ACCEPTED") {
     say(theResult.verdict + ": " + theResult.reason);
     say("we did not submit, because the local check did not accept the file");
@@ -569,8 +601,11 @@ async function releaseLease(state, leaseid, reason, prnumber) {
   if (theReply.lease_id != leaseid) {
     stop("the desk answered a release for a different lease");
   }
-  state.leases[leaseid].state = theReply.state;
-  writeState(state);
+  const theFields = { state: theReply.state };
+  if (prnumber != null) {
+    theFields.pr_number = prnumber;
+  }
+  applyChange(state, leaseChange(leaseid, theFields));
   say("the desk recorded the lease " + leaseid + " as " + theReply.state + " (" + theReply.reason + ")");
   if (theReply.flagged == true) {
     say("the desk flagged the step for the lead, thank you");
@@ -579,13 +614,16 @@ async function releaseLease(state, leaseid, reason, prnumber) {
 
 async function commandRelease(options) {
   const theState = readState();
-  const theLeaseId = pickLease(theState, options.positional[1]);
-  const theReason = options.positional[2] ?? options.reason;
-  if (releaseReasons.indexOf(theReason) == -1 || theReason == "submitted") {
-    say("give a reason: " + releaseReasons.slice(0, 7).join(", ") + " (submit sets submitted for you)");
+  const theRelease = releaseArguments(options);
+  if (theRelease.problem != null) {
+    say(theRelease.problem);
     process.exit(1);
   }
-  await releaseLease(theState, theLeaseId, theReason, null);
+  const theLeaseId = pickLease(theState, theRelease.lease);
+  await releaseLease(theState, theLeaseId, theRelease.reason, theRelease.pr);
+  if (theRelease.pr != null) {
+    say("we recorded pull request #" + theRelease.pr + " for " + theState.leases[theLeaseId].lemma_id + "; the checker posts its verdict there");
+  }
 }
 
 function commandValue(options) {
@@ -626,12 +664,13 @@ function commandStatus() {
 
 function printHelp() {
   say("usage: tools/mg.sh <command> [options]");
-  say("  setup                         install the toolchain and caches, and record your GitHub handle");
+  say("  setup [--handle LOGIN]        install the toolchain and caches, and record your GitHub handle (or MG_HANDLE)");
   say("  next [--hard] [--level L] [--kind K] [--another] [--proof-of ID]   lease a step");
   say("  beat [lease]                  keep a lease alive, every 5 minutes");
   say("  check [lease|id|file]         run the lint, the build and the semantic check locally");
   say("  submit [lease] [--allow-public-email]   check, commit the one file, open the pull request, release as submitted");
   say("  release [lease] <reason>      hand a step back: " + releaseReasons.slice(0, 7).join(", "));
+  say("  release [lease] submitted --pr N   record a pull request you opened by hand");
   say("  value [lease]                 show the value template or search range of a value or search step");
   say("  status                        list the leases this machine knows about");
 }
@@ -645,15 +684,29 @@ async function main() {
     process.exit(1);
   }
   const theCommand = theOptions.positional[0];
+  if (theCommand == keepAliveCommand) {
+    try {
+      await runKeepAlive(stateDir, deskOrigin(), theOptions.positional.slice(1), say);
+    } catch (error) {
+      say("the background heartbeats stopped because something went wrong (" + String(error.message).split("\n")[0] + "), so beat by hand if the check runs long");
+    }
+    process.exit(0);
+  }
   if (theCommand == undefined || theOptions.help == true || commands.indexOf(theCommand) == -1) {
     printHelp();
     process.exit(theCommand == undefined || theOptions.help == true ? 0 : 1);
   }
   if (theCommand == "setup") {
-    const theHandle = runSetup(proofsRoot, say, stop);
-    const theState = readState();
-    theState.handle = theHandle;
-    writeState(theState);
+    const theOverride = handleOverride(theOptions.handle, process.env.MG_HANDLE);
+    if (theOverride.problem != null) {
+      say(theOverride.problem);
+      process.exit(1);
+    }
+    const theHandle = runSetup(proofsRoot, say, stop, theOverride.handle);
+    function setHandle(fresh) {
+      fresh.handle = theHandle;
+    }
+    updateStateFile(stateDir, setHandle);
     return;
   }
   if (theCommand == "next") {

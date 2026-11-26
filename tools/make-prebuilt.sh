@@ -10,6 +10,23 @@ asset="massgap-lake-build-${toolchain}.tar.gz"
 repo="$(node --input-type=module -e 'import("./tools/lib/config.mjs").then((m) => console.log(m.upstreamRepo()))')"
 outdir="$root/dist"
 
+refuse_private() {
+  if ! node -e '
+const fs = require("node:fs");
+import(process.argv[1]).then(function (m) {
+  const theListing = fs.readFileSync(0, "utf8");
+  const theProblem = m.privatePathProblem(theListing);
+  if (theProblem != null) {
+    console.log("STOPPED: " + theProblem);
+    process.exit(3);
+  }
+});
+' "$root/tools/lib/setup.mjs"; then
+    rm -f "$outdir/$asset"
+    exit 2
+  fi
+}
+
 lake build YMPublic MassGap.Defs MassGap.Statement
 
 if find .lake/build -type l | grep -q .; then
@@ -39,12 +56,15 @@ for (let n = 1; n < process.argv.length; n++) {
 }
 ' {} +
 
+(cd "$stage" && find .) | refuse_private
+
 if grep -rqF "$root" "$stage/.lake/build" || grep -rqF "$HOME" "$stage/.lake/build"; then
   echo "STOPPED: the archive would carry a local path of this machine"
   exit 2
 fi
 
 (cd "$stage" && COPYFILE_DISABLE=1 tar --no-xattrs --uid 0 --gid 0 --uname root --gname root -czf "$outdir/$asset" .lake/build)
+tar -tzf "$outdir/$asset" | refuse_private
 
 sum="$(shasum -a 256 "$outdir/$asset" | cut -d' ' -f1)"
 bytes="$(wc -c < "$outdir/$asset" | tr -d '[:space:]')"

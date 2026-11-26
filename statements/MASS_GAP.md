@@ -224,7 +224,7 @@ Each open target has a negated twin (L-stmt-0101 to L-stmt-0106) whose statement
 
 ### 4.2 Excluding p = 0 and the uniqueness of the vacuum
 
-`MassGapAt` removes the single point p = 0 and says nothing about it. In the Wightman picture the atom of the spectral measure at 0 is the vacuum. The public W0 says the translation-invariant vectors are multiples of the vacuum (`uniqueVacuum`), but it never says that `projection {0}` is the vacuum projection. That link is step L-stmt-0035 (hard). Without it a reader cannot pass from `MassGapAt` to the statement "every excitation of the vacuum has energy at least Δ". The Jaffe–Witten form "no spectrum in (0, Δ)" also leaves 0 alone, so with a degenerate vacuum it would still hold; the group's form and our `VacuumComplementGapAt` are stronger only once the vacuum is unique. For the reconstructed theory the uniqueness is part of `T.theory.Axioms`, so the forms agree there (L-stmt-0036).
+`MassGapAt` removes the single point p = 0 and says nothing about it. In the Wightman picture the atom of the spectral measure at 0 is the vacuum. The public W0 says the translation-invariant vectors are multiples of the vacuum (`uniqueVacuum`), but it never says that `projection {0}` is the vacuum projection. That link is L-lib-0033, which is checked. L-stmt-0035 stated the same fact and is retired. Without it a reader cannot pass from `MassGapAt` to the statement "every excitation of the vacuum has energy at least Δ". The Jaffe–Witten form "no spectrum in (0, Δ)" also leaves 0 alone, so with a degenerate vacuum it would still hold; the group's form and our `VacuumComplementGapAt` are stronger only once the vacuum is unique. For the reconstructed theory the uniqueness is part of `T.theory.Axioms`, so the forms agree there (L-stmt-0036).
 
 ### 4.3 Spectral form versus Hamiltonian form
 
@@ -285,6 +285,7 @@ seat-stmt-1 and seat-redteam-1 were run by the same agent for M0. The red-team r
 4. The precise form of the Euclidean statement: selected phase, two-cluster truncation, uniformity on compact sets, all directions versus time only (4.8).
 5. The rate edges in the bridge pieces L-stmt-0042 and L-stmt-0043 (4.9).
 6. Whether `SubsequenceIndependent` is the uniqueness the group means (4.10).
+7. Whether `Hierarchy.Reconstructed.boundary` in the vendored `ChallengeSpec.lean` ties `continuation` to the Wightman functions tightly enough. It asks the integral of `T.continuation v (complexShift r height x) (spatialPoints x) * tensorTest tests x` over `Points n` to tend to the smeared vacuum expectation as r decreases to 0, with no integrability assumption, and Mathlib's Bochner integral of a non-integrable function is 0. If the integrand is not integrable for every small r, the condition only asks that the smeared vacuum expectation vanish, and wherever it does vanish the condition holds with no constraint on `continuation`. `root` still fixes `continuation` on the ordered tube from the selected correlations, so the gap concerns a hierarchy whose continued correlations grow faster than every polynomial in the real time directions. A trial agent raised this. The definition, read again, has no integrability clause, and nobody has formalized an example.
 
 ## 6. Steps
 
@@ -318,7 +319,7 @@ seat-stmt-1 and seat-redteam-1 were run by the same agent for M0. The red-team r
 | L-stmt-0032 | solid | A mass gap rules out massless particles |
 | L-stmt-0033 | solid | A gap at Δ rules out every mass below Δ |
 | L-stmt-0034 | hard | The spectral gap gives the Hamiltonian gap |
-| L-stmt-0035 | hard | The zero-momentum projection is the vacuum projection |
+| L-stmt-0035 | hard | The zero-momentum projection is the vacuum projection (retired, the same fact as the checked L-lib-0033) |
 | L-stmt-0036 | hard | Two Hamiltonian gap forms agree |
 | L-stmt-0037 | hard | Lorentz covariance turns an energy gap into a mass gap |
 | L-stmt-0038 | hard | The constructed theory has finite mass |
@@ -341,6 +342,8 @@ Every statement above was elaborated in its canonical one-line form under the st
 | 2026-11-25 | First draft, seat_reviewed, under review |
 | 2026-11-25 | Independent review (section 8). L-stmt-0001, L-stmt-0002, L-stmt-0004 and L-stmt-0005 marked disputed; L-clu-0007, L-clu-0008, L-uniq-0006 and L-uniq-0007 marked disputed in their programs |
 | 2026-11-25 | Repaired forms added as new steps L-stmt-0007, L-stmt-0008, L-stmt-0009 and L-stmt-0013 with their twins (section 8.7). `Statement.lean` is unchanged |
+| 2026-11-25 | Program `stmt` now targets L-stmt-0007. L-stmt-0035 retired because the checked L-lib-0033 states the same fact up to an abbreviation; L-stmt-0036 now cites L-lib-0033. In program `uniq`, L-uniq-0006 and its twin retired and replaced by L-uniq-0008, which binds `g` once |
+| 2026-11-25 | Section 5, item 7 added: `Reconstructed.boundary` integrates `continuation` with no integrability assumption |
 
 ## 8. Independent review of 2026-11-25
 

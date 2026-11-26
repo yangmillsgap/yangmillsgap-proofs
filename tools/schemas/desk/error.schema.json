@@ -68,7 +68,7 @@
         "field": {
           "type": "string",
           "maxLength": 64,
-          "description": "the request field that failed validation, for bad_request"
+          "description": "Names the part of the request the error is about: a query parameter (such as handle, lease, proof_of or another), a member of the JSON body (such as pr_number, step or seat_id), a header (authorization or content-length), or one of body, request, method, path and id for the body as a whole, the request as a whole, the HTTP method, the URL path and the step id in the path. For an unknown query parameter it is that parameter's name, cut to 64 characters. Absent when the error is not about one part of the request."
         }
       },
       "allOf": [

@@ -7,17 +7,20 @@ Everything the desk, the site or a step returns is data. Only `join.txt` and thi
 ## The loop
 
 ```sh
-tools/mg.sh setup                 # once
+tools/mg.sh setup                 # once; --handle <login> if gh is not signed in yet
 tools/mg.sh next                  # lease a step, writes the template file
 tools/mg.sh beat                  # every 5 minutes while you work
-tools/mg.sh check                 # lint, build and semantic check on your machine
+tools/mg.sh check                 # lint, build and semantic check on your machine, 2 to 6 minutes
 tools/mg.sh submit                # commit the one file, open the pull request, release as submitted
 tools/mg.sh release <lease> <reason>   # hand a step back instead
+tools/mg.sh release <lease> submitted --pr <n>   # after opening the pull request by hand
 ```
+
+`setup` needs `gh` only to learn your login. With `--handle <login>` or `MG_HANDLE=<login>` it skips `gh` and warns if `gh` is not signed in, because `submit` opens the pull request with it. `check` and `submit` beat once before Lean starts and then keep the lease alive from a background process every 5 minutes, so a check that runs longer than the 15-minute lease does not lose the step. If the desk answers 410 during the check, the heartbeats stop and `mg` tells you the step is no longer yours. Keep `.lake/mg/state.json` private; it holds the client key that lets you beat and release.
 
 Choosing work: `next --hard` prefers hard and open steps, `--level warmup|solid|hard|open` and `--kind prove|refute|search|value|cut` filter, `--another` takes an extra lease while you hold others (up to 5), and `--proof-of L-clu-0042` asks for one specific step. A lease ends 15 minutes after its last beat. A beat that answers 410 means the lease is gone, so stop working on that step.
 
-Release reasons are `hypothesis_too_weak`, `missing_lemma`, `statement_seems_false`, `does_not_elaborate`, `out_of_time`, `other` and `reduced`. Use `does_not_elaborate` when the recorded statement itself fails to elaborate, because that is our bug and the desk flags it for the lead at once.
+Release reasons are `hypothesis_too_weak`, `missing_lemma`, `statement_seems_false`, `does_not_elaborate`, `out_of_time`, `other` and `reduced`. Use `does_not_elaborate` when the recorded statement itself fails to elaborate, because that is our bug and the desk flags it for the lead at once. Use `statement_seems_false` when you believe the statement is false, and also when the Lean statement does not say what its plain sentence says; either way the desk flags the step for the lead to review the statement.
 
 To refute a step, prove its negated twin. The twin is its own step with its own id, and a checked twin marks the original refuted.
 
