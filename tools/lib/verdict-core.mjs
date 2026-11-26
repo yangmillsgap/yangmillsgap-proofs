@@ -78,6 +78,28 @@ export function parseVerdictArtifact(text) {
   return { ok: true, artifact: theArtifact };
 }
 
+export function fleetConfigOf(env) {
+  const theLogin = String(env.FLEET_BOT_LOGIN ?? "").trim();
+  const theHandle = String(env.FLEET_HANDLE ?? "").trim();
+  if (theLogin.length == 0 || theHandle.length == 0) {
+    return null;
+  }
+  if (handlePattern.test(theHandle) == false) {
+    return null;
+  }
+  return { botLogin: theLogin, handle: theHandle };
+}
+
+export function creditedHandle(login, fleet) {
+  if (fleet == null || fleet == undefined) {
+    return login;
+  }
+  if (login == fleet.botLogin) {
+    return fleet.handle;
+  }
+  return login;
+}
+
 export function trustedFileCheck(files) {
   if (files.length != 1) {
     const theNames = [];
@@ -111,13 +133,14 @@ export function decideFinal(input) {
   if (theRun.head_sha != thePr.head_sha) {
     return { action: "skip", why: "the pull request moved on since this run, a newer run will report" };
   }
-  const theHandleOk = handlePattern.test(thePr.user_login);
+  const theHandle = creditedHandle(thePr.user_login, input.fleet ?? null);
+  const theHandleOk = handlePattern.test(theHandle);
   const theFiles = trustedFileCheck(input.files);
   const theFinal = {
     action: "report",
     pr_number: thePr.number,
     head_sha: thePr.head_sha,
-    handle: thePr.user_login,
+    handle: theHandle,
     lemma_id: theFiles.lemmaId,
     verdict: "FAULT",
     reason: null,

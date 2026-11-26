@@ -10,7 +10,8 @@ import {
   hookPayload,
   hookHeaders,
   newNonce,
-  shaPattern
+  shaPattern,
+  fleetConfigOf
 } from "./lib/verdict-core.mjs";
 import { validateAgainst } from "./lib/json-check.mjs";
 import { deskOrigin, siteOrigin, isConfigured } from "./lib/config.mjs";
@@ -152,7 +153,11 @@ async function main() {
     started_at: theEnv.RUN_STARTED_AT ?? new Date().toISOString(),
     finished_at: new Date().toISOString()
   };
-  const theFinal = decideFinal({ pr: thePr, files: theFiles, run: theRun, artifact: theRead.artifact });
+  const theFleet = fleetConfigOf(theEnv);
+  if (theFleet != null) {
+    console.log("pull requests from " + theFleet.botLogin + " are credited to " + theFleet.handle);
+  }
+  const theFinal = decideFinal({ pr: thePr, files: theFiles, run: theRun, artifact: theRead.artifact, fleet: theFleet });
   if (theFinal.action == "skip") {
     console.log("we skipped pull request " + theNumber + ": " + theFinal.why);
     return;

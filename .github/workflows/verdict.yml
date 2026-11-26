@@ -43,4 +43,6 @@ jobs:
           RUN_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
           RUN_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
           ARTIFACT_DIR: verdict-artifact
+          FLEET_BOT_LOGIN: ${{ vars.FLEET_BOT_LOGIN }}
+          FLEET_HANDLE: ${{ vars.FLEET_HANDLE }}
         run: node tools/verdict.mjs

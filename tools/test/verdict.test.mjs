@@ -10,7 +10,9 @@ import {
   signHook,
   newNonce,
   trustedFileCheck,
-  cleanReason
+  cleanReason,
+  fleetConfigOf,
+  creditedHandle
 } from "../lib/verdict-core.mjs";
 import { composeVerdict } from "../ci-verdict.mjs";
 import { validateAgainst } from "../lib/json-check.mjs";
@@ -112,6 +114,58 @@ describe("the trusted decision", () => {
     expect(trustedFileCheck(oneFile).ok).toBe(true);
     expect(trustedFileCheck([{ filename: thePath, status: "modified" }]).ok).toBe(false);
     expect(trustedFileCheck([{ filename: "MassGap/Library/X.lean", status: "added" }]).ok).toBe(false);
+  });
+});
+
+describe("crediting the fleet bot", () => {
+  const theFleet = fleetConfigOf({ FLEET_BOT_LOGIN: "yangmillsgap-bot[bot]", FLEET_HANDLE: "yangmillsgap-fleet" });
+
+  function botPr() {
+    const thePr = pr();
+    thePr.user_login = "yangmillsgap-bot[bot]";
+    return thePr;
+  }
+
+  it("reads the bot login and the desk handle from the environment", () => {
+    expect(theFleet).toEqual({ botLogin: "yangmillsgap-bot[bot]", handle: "yangmillsgap-fleet" });
+    expect(fleetConfigOf({})).toBe(null);
+    expect(fleetConfigOf({ FLEET_BOT_LOGIN: "yangmillsgap-bot[bot]", FLEET_HANDLE: "" })).toBe(null);
+    expect(fleetConfigOf({ FLEET_BOT_LOGIN: "yangmillsgap-bot[bot]", FLEET_HANDLE: "seat-lib-1" })).toBe(null);
+    expect(fleetConfigOf({ FLEET_BOT_LOGIN: "yangmillsgap-bot[bot]", FLEET_HANDLE: "bad handle" })).toBe(null);
+  });
+
+  it("maps only the bot login to the fleet handle", () => {
+    expect(creditedHandle("yangmillsgap-bot[bot]", theFleet)).toBe("yangmillsgap-fleet");
+    expect(creditedHandle("octocat", theFleet)).toBe("octocat");
+    expect(creditedHandle("yangmillsgap-bot[bot]", null)).toBe("yangmillsgap-bot[bot]");
+  });
+
+  it("credits an accepted bot pull request to the fleet handle and merges it", () => {
+    const theArtifact = parseVerdictArtifact(JSON.stringify(artifact("ACCEPTED", null))).artifact;
+    const theFinal = decideFinal({ pr: botPr(), files: oneFile, run: run(), artifact: theArtifact, fleet: theFleet });
+    expect(theFinal.verdict).toBe("ACCEPTED");
+    expect(theFinal.merge).toBe(true);
+    expect(theFinal.handle).toBe("yangmillsgap-fleet");
+    const thePayload = hookPayload(theFinal, "https://github.com/o/r/actions/runs/1", "d".repeat(40));
+    expect(thePayload.handle).toBe("yangmillsgap-fleet");
+    expect(validateAgainst("checkerHookPayload", thePayload)).toEqual([]);
+  });
+
+  it("still refuses a bot pull request when no fleet is configured", () => {
+    const theArtifact = parseVerdictArtifact(JSON.stringify(artifact("ACCEPTED", null))).artifact;
+    const theFinal = decideFinal({ pr: botPr(), files: oneFile, run: run(), artifact: theArtifact });
+    expect(theFinal.verdict).toBe("REJECTED");
+    expect(theFinal.reason.startsWith("handle_invalid")).toBe(true);
+    expect(theFinal.merge).toBe(false);
+  });
+
+  it("does not credit another bot to the fleet", () => {
+    const theArtifact = parseVerdictArtifact(JSON.stringify(artifact("ACCEPTED", null))).artifact;
+    const theOther = pr();
+    theOther.user_login = "dependabot[bot]";
+    const theFinal = decideFinal({ pr: theOther, files: oneFile, run: run(), artifact: theArtifact, fleet: theFleet });
+    expect(theFinal.verdict).toBe("REJECTED");
+    expect(theFinal.handle).toBe("dependabot[bot]");
   });
 });
 
