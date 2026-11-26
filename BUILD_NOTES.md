@@ -65,7 +65,26 @@ The measurement cloned this repository with `git clone` into an empty folder on 
 
 Inside those 128 s: the toolchain was already installed, so elan did nothing; the prebuilt archive was checked against its hash and unpacked; `lake exe cache get` cloned Mathlib and the 8 other pinned packages from GitHub, built the `cache` tool (22 short compile jobs, each under 3 s) and decompressed 8,451 Mathlib files from the cache already in `~/.cache/mathlib`, downloading nothing; `lake build MassGap.Defs` then printed no `Built` line for any module, so Lake reused the prebuilt `PublicTheory`, `PublicWilson`, `ChallengeSpec` and `MassGap.Defs`. A later `lake build MassGap.Statement` in the clone took 16 s and also built nothing. `.lake` ended at 7.7 GB.
 
-So these 128 s exclude two costs a first-time contributor pays: the toolchain download (50 s in section 2.1) and the Mathlib cache download (about 5 GB; section 2.1 does not separate it from the clone). Against section 2.1 the prebuilt cache removes the 273 s build of the vendored files and the 80 s build of `MassGap.Defs`.
+For comparison, deleting `.lake/build` in the same clone and running `lake build YMPublic MassGap.Defs MassGap.Statement` took 515 s on the same busy machine (PublicTheory 110 s, PublicWilson 93 s, ChallengeSpec 72 s, `MassGap.Defs` 106 s, `MassGap.Statement` 126 s). That is the time the prebuilt cache saves.
+
+The 128 s exclude two costs a first-time contributor pays: the toolchain download (50 s in section 2.1) and the Mathlib cache download (about 5 GB; section 2.1 does not separate it from the clone). Against section 2.1 the prebuilt cache removes the 273 s build of the vendored files and the 80 s build of `MassGap.Defs`.
+
+### 2.1.2 The checker image and the controls inside it (2026-11-25)
+
+Docker Desktop on the same machine (Linux arm64 VM with 10 CPUs and 11.7 GB). `.dockerignore` keeps `.lake`, `dist`, `scratch-seeds` and `node_modules` out of the build context.
+
+| What | Wall time |
+|---|---|
+| First `docker build -t yangmillsgap-checker:local .` | 1,102 s: elan and the toolchain 85 s, `lake exe cache get` with `lake build YMPublic MassGap.Defs` 286 s (PublicTheory 53 s, PublicWilson 19 s, ChallengeSpec 17 s), `CheckLemma.lean` 4 s, writing the image 715 s |
+| Rebuild after adding the `MassGap.Statement` layer | 139 s (`lake build MassGap.Statement` 122 s, earlier layers cached) |
+| Image size | 16.3 GB on disk, 4.15 GB content |
+| `tools/ci-container.sh controls` in the image, run as `controls.yml` runs it (`--network none --memory 6500m --memory-swap 6500m --cpus 2`) | 1,184 s; 19 of 19 controls got the expected verdict |
+| The Lean-backed controls inside that run | accept 224 s, definition_mismatch 174 s, forbidden_axiom 284 s, helper_name 210 s, refute_accept 136 s, statement_mismatch 152 s; the 13 lint-only controls under 1 s each |
+| The macOS-built prebuilt archive unpacked into the image's `/opt/proofs` with no network, then `lake build YMPublic MassGap.Defs MassGap.Statement` | 11 s, nothing rebuilt |
+
+The last row shows that the archive made on macOS arm64 is reused as is on Linux arm64. Linux x86_64, which GitHub's runners use, was not tried.
+
+The same 19 controls run on the host with `node tools/run-controls.mjs` took 1,607 s (accept alone 536 s) while the host was swapping, so the container numbers are the better guide.
 
 ### 2.2 Disk
 
