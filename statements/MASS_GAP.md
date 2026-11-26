@@ -1,6 +1,6 @@
 # The mass gap statement and its faithfulness report
 
-**Review state: under review.** Faithfulness `seat_reviewed` (seat-stmt-1 drafted, seat-redteam-1 reviewed). No expert has reviewed this text yet. Nothing on the site may claim progress toward the mass gap beyond what this state allows, and every target below is a conjecture until the checker accepts a proof.
+**Review state: under review.** Faithfulness `disputed` for the Clay-shaped targets L-stmt-0001, L-stmt-0002, L-stmt-0004 and L-stmt-0005 after the independent review of 2026-11-25 (section 8); their repaired forms L-stmt-0007, L-stmt-0008, L-stmt-0009 and L-stmt-0013 (section 8.7) are `unreviewed`. The bridge, phase agreement and supporting steps are `seat_reviewed` (seat-stmt-1 drafted, seat-redteam-1 reviewed), and one agent ran both seats, so that review is a self-review (section 4.12). No expert has reviewed this text yet. Nothing on the site may claim progress toward the mass gap beyond what this state allows, and every target below is a conjecture until the checker accepts a proof.
 
 | | |
 |---|---|
@@ -296,6 +296,10 @@ seat-stmt-1 and seat-redteam-1 were run by the same agent for M0. The red-team r
 | L-stmt-0004 | open | Uniqueness of the infinite-volume limit |
 | L-stmt-0005 | open | Every admitted hierarchy has a mass gap |
 | L-stmt-0006 | open | The pure phases agree |
+| L-stmt-0007 | open | The mass gap target with agreeing phases |
+| L-stmt-0008 | open | The Euclidean mass gap target with agreeing phases |
+| L-stmt-0009 | open | Uniqueness of the infinite-volume limit with agreeing phases |
+| L-stmt-0013 | open | Every admitted hierarchy with agreeing phases has a mass gap |
 | L-stmt-0010 | warmup | The universal target and existence give the mass gap target |
 | L-stmt-0011 | warmup | The bridge turns the Euclidean target into the mass gap target |
 | L-stmt-0012 | warmup | The bridge turns the mass gap target into the Euclidean target |
@@ -326,12 +330,125 @@ seat-stmt-1 and seat-redteam-1 were run by the same agent for M0. The red-team r
 | L-stmt-0050 | hard | Subsequence independence gives a full infinite-volume limit |
 | L-stmt-0051 | solid | One phase means the phases agree |
 | L-stmt-0052 | warmup | Agreeing phases agree with each other |
-| L-stmt-0101 to L-stmt-0106 | (twins) | negations of L-stmt-0001 to L-stmt-0006 |
+| L-stmt-0101 to L-stmt-0109, L-stmt-0113 | (twins) | negations of L-stmt-0001 to L-stmt-0009 and of L-stmt-0013 |
 
-Every statement above was elaborated in its canonical one-line form under the step-file header with `autoImplicit` off (`scratch-seeds/stmt/Elaborate.lean`). The scratch file `scratch-seeds/stmt/Proofs.lean` holds red-team proofs of the warmup steps and of L-stmt-0024 to L-stmt-0027, L-stmt-0030 to L-stmt-0033, L-stmt-0040 and L-stmt-0041, written to check that the levels are honest. Those proofs have not been through the checker and do not count as checked.
+Every statement above was elaborated in its canonical one-line form under the step-file header with `autoImplicit` off (`scratch-seeds/stmt/Elaborate.lean`). The red team also wrote proofs of the warmup steps and of L-stmt-0024 to L-stmt-0027, L-stmt-0030 to L-stmt-0033, L-stmt-0040 and L-stmt-0041, to check that the levels are honest. Those proofs stay on the maintainer's machine so the steps remain open, and they have not been through the checker.
 
 ## 7. Change log
 
 | Date | Change |
 |---|---|
 | 2026-11-25 | First draft, seat_reviewed, under review |
+| 2026-11-25 | Independent review (section 8). L-stmt-0001, L-stmt-0002, L-stmt-0004 and L-stmt-0005 marked disputed; L-clu-0007, L-clu-0008, L-uniq-0006 and L-uniq-0007 marked disputed in their programs |
+| 2026-11-25 | Repaired forms added as new steps L-stmt-0007, L-stmt-0008, L-stmt-0009 and L-stmt-0013 with their twins (section 8.7). `Statement.lean` is unchanged |
+
+## 8. Independent review of 2026-11-25
+
+This section is by a reviewer who did not draft or red-team sections 1 to 7. It covers `MassGap/Statement.lean`, `MassGap/Defs.lean`, the vendored `PublicTheory.lean`, `PublicWilson.lean` and `ChallengeSpec.lean`, and a sample of the hard and open seeds of the `clu`, `lat`, `rg`, `uniq` and `largeN` programs. The machine-checked parts are in `scratch-seeds/review/Independent.lean`, which `lake env lean` elaborated on 2026-11-25 with no errors, no warnings and no `sorry`. Those lemmas are scratch and have not been through the checker.
+
+### 8.1 Verdicts in brief
+
+| Item | Verdict |
+|---|---|
+| `MassGapAt`, `HasMassGap` as a reading of "no spectrum of H in (0, Δ), m < ∞" | faithful for any theory with `Axioms`; matches given L-stmt-0034 and L-stmt-0037, both of which I believe true |
+| `charFun` sign convention | consistent with `orderedTube`, `root` and `W2`; no statement here depends on it |
+| Projection of non-measurable sets | never used; every region in the file is Borel |
+| Leaving out p = 0 | correct under `W0` and `W2`; L-stmt-0035 is true under `Axioms` |
+| Bound on Δ | needed and sufficient (lemma `no_gap_of_every_gap`) |
+| `ClusteringAt`, `TimeClusteringAt` | the standard two-cluster exponential clustering; the best rate equals the mass |
+| Bridge pieces L-stmt-0040 to L-stmt-0043 | true as stated, including at their rate edges |
+| `BridgeTarget` (L-stmt-0003) | faithful and, I expect, true; `seat_reviewed` kept |
+| `PhaseAgreementTarget` (L-stmt-0006) | faithful in intent; `seat_reviewed` kept |
+| `MassGapTarget`, `EuclideanMassGapTarget`, `UniquenessTarget`, `UniversalMassGapTarget` | **disputed**: the public frame lets a witness with no Yang–Mills content meet or break them (8.4) |
+
+### 8.2 The spectral definitions
+
+**Sign convention.** Mathlib's `charFun μ t` is the integral of exp(i⟪x, t⟫), so `W0.spectralRepresentation` reads ⟨ψ, U(a)ψ⟩ = ∫ exp(i⟪p, a⟫) dμ_ψ(p). `W2.fieldCovariance` with the pullback f(Λ⁻¹(x − a)) gives U(a)φ(y)U(a)⁻¹ = φ(y + a). The two-point function is then ∫ exp(i(p₀(t₂ − t₁) + p⃗·(x⃗₂ − x⃗₁))) dμ with p in the closed forward cone, which continues to Im t₂ > Im t₁. That is the public `orderedTube` (imaginary parts increasing in index order) and the time-ordered Euclidean points of `root`. The public conventions are therefore consistent with one another, the time component of p is +H, and the spatial part is minus the textbook momentum, as 4.1 says. Every set in `Statement.lean` is invariant under p⃗ ↦ −p⃗.
+
+**Junk values.** `EnergyMomentumMeasure.projection` is unconstrained off measurable sets. Every region the file and the `stmt` steps use (`lowMassRegion`, `energyWindow`, `belowEnergy`, `{0}`, the mass-shell sets of L-stmt-0032 and L-stmt-0033) is Borel. On Borel sets the projection is pinned by the translations: `diagonalIdentity` gives its quadratic form, a complex operator is fixed by its quadratic form, and a finite measure on `Spacetime` is fixed by its characteristic function.
+
+**Leaving out p = 0.** If ψ lies in the range of the projection of `{0}`, its spectral measure is ‖ψ‖² times a point mass at 0, so ⟨ψ, U(x)ψ⟩ = ‖ψ‖² for every x and unitarity forces U(x)ψ = ψ. `W0.uniqueVacuum` makes ψ a multiple of the vacuum. The other inclusion needs the vacuum to be translation invariant, which comes from `W2.vacuumInvariant` and `translationCompatibility`, and the formula of L-stmt-0035 needs `W1`'s normalisation. So L-stmt-0035 is true under `Axioms`, and under `Axioms` `MassGapAt Δ` says exactly that every state orthogonal to the vacuum has spectral weight only at p·p ≥ Δ².
+
+**The bound on Δ.** Without it a theory whose only state is the vacuum would have a gap. The scratch lemma `no_gap_of_every_gap` proves that a theory whose low-mass projection vanishes at every Δ > 0 fails `HasMassGap`. With the bound, `HasMassGap` holds iff the non-vacuum spectrum is nonempty and bounded away from mass 0, and the supremum of admissible Δ is the infimum of √(p·p) over the non-vacuum spectrum, which is Jaffe and Witten's m once L-stmt-0037 holds.
+
+**Spectral form against Hamiltonian form.** L-stmt-0034 follows from the spectrum condition, the intersection rule and L-stmt-0025. For L-stmt-0037 the public `PoincareAction` has no inverse operation, but `coordinates` is a bijection onto `ProperLorentz × Spacetime` and `productCoordinates` fixes the group law, so every symmetry g has a right inverse h with `onStates g ∘ onStates h = id`. Then `onStates g` is a surjective isometry, and g · `pureTranslation x` · h = `pureTranslation (Λx)` by injectivity of `coordinates`. The spectral measure of `onStates g ψ` is the image of that of ψ under the Euclidean transpose of Λ⁻¹, which is ηΛη, again proper and orthochronous. A spectral point q ≠ 0 with q·q < Δ² in the cone boosts to energy √(q·q) in (0, Δ), or to arbitrarily small positive energy when q is lightlike, and the window is open. So L-stmt-0037 is true, and L-stmt-0036 follows because under `Axioms` the projection of `belowEnergy Δ` is the vacuum projection plus the projection of `energyWindow Δ`.
+
+### 8.3 The Euclidean form and the bridge
+
+`ClusteringAt` is the usual exponential clustering of the connected correlation of two clusters, with constants uniform over compact sets of distinct points. For a theory of mass m the truncated two-point function decays like exp(−m|s|)|s|^(−3/2), so `ClusteringAt m` holds and no faster rate does; the supremum in `HasClusteringGap` equals the mass. Restricted to purely spatial s, the bound gives the equal-time clustering of Jaffe and Witten section 5 at every rate below m.
+
+The bridge pieces, at their stated rates.
+
+* L-stmt-0040 and L-stmt-0041 are true. A negative K makes the hypothesis false on nonempty sets, so the rate monotonicity needs no sign assumption.
+* L-stmt-0042 (rate δ < Δ) is true. For clusters at strictly ordered Euclidean times the selected correlation equals the Fourier–Laplace transform of the Wightman functions, by `root`, `boundary` and uniqueness of holomorphic functions with given distributional boundary values. The truncated part is ∫ exp(−t p₀) dμ_{A,B} over p ≠ 0, and the gap puts that region at p₀ ≥ Δ. I expect the bound to hold at δ = Δ as well, so the edge is on the safe side.
+* L-stmt-0043 (rate Δ, open window (0, Δ)) is true. With B a cluster and A its time reflection, the truncated correlation is ∫ exp(−t p₀) dμ_v over p ≠ 0, a positive measure. Weight at energy E < Δ would decay like exp(−tE). Vectors made from fields at Euclidean points span a dense set, by the identity theorem on the ordered tube and `W1.cyclicVacuum`, so some cluster detects any spectral weight in the window.
+
+With Euclidean rotation invariance of the selected correlations, which `W2` gives through the analytic continuation, these pieces prove `BridgeTarget`. I keep it `seat_reviewed` and agree that it is open and hard.
+
+### 8.4 Degenerate witnesses
+
+**Empty token type.** `Reconstructed.represents` asks `T.project` to be onto `T.Tag`, which is never empty because each `Field d` contains 0. A Wilson family with no tokens admits no hierarchy, so it cannot prove an existential target and makes `UniversalMassGapTarget` hold vacuously for that family only.
+
+**Zero theory.** A zero Hilbert space violates `normalizedVacuum`. The vacuum-only theory with the field f ↦ (∫ f)·1 satisfies `Axioms`, but it fails `HasMassGap` through the bound and fails `HasClusteringGap` the same way, so the bridge is consistent on it.
+
+**Disconnected groups.** `GaugeGroup.IsSimple` constrains only the Lie algebra, so closed subgroups of U(n + 1) whose identity component is simple but which have several components are admitted. The `∀ g` targets ask more than Clay here. The extra components add a discrete gauge field, which I expect to be gapped at weak coupling, so I see no cheap refutation through them; a refutation that used one would still not be a refutation of the Clay problem.
+
+**No simple group in Lean.** If no `GaugeGroup` satisfied `IsSimple`, every `∀ g, g.IsSimple → …` target would hold vacuously. SU(2) qualifies mathematically, but nothing in the repository proves it. A hard step `∃ g : GaugeGroup, g.IsSimple` would close this.
+
+**Constant insertions and a signed partner phase.** This is the defect behind the four disputed targets. The chain of facts is below.
+
+1. The prover of an existential target chooses the Wilson family, including `Token` and `insertion`. `WilsonRegularity` asks the insertions to be continuous, gauge invariant and local, and constant functions are all three. The scratch lemma `regular_of_constant_insertions` proves that any family with insertions κ(v), independent of the configuration, and coupling β = log(1/a) is regular.
+2. For such a family the lattice moments are products of the constants. The scratch lemma `truncated_moment_constant` proves that every truncated two-point moment vanishes once the Wilson law is a probability measure (step L-lat-0013). The mesh and volume limits then fix the mixed correlations `T.correlation none` to the product ∏ κ(vᵢ), the same along every volume order.
+3. `Hierarchy.Reconstructed` asks the Wightman axioms of `T.theory` alone, which is the selected phase. Nothing asks the other phases to be positive. With a two-point `Character` space carrying weights ½ and ½, the second phase can be defined as 2·(mixed) − (selected), and `mixture`, `smooth`, `permutation` and `characterContinuity` then hold.
+4. The operator product expansion shares its coefficients across phases, and a product state can share them with the selected phase. Give κ = 1 to the token of the tag ⟨0, 1⟩ and κ = 0 to every other token, including ⟨0, 2⟩. For clusters that contain any other tag, carry the selected phase's identity coefficient on the tag ⟨0, 2⟩ at half weight. I checked the expansion by hand for empty clusters, clusters of ⟨0, 1⟩ only and mixed clusters, in the mixed phase and in the selected phase; the partner phase follows by linearity.
+5. What remains is a Wightman theory with an operator product expansion of the public shape and a trace field passing `TraceTest`. A generalized free field with Källén–Lehmann density growing like s²/log² s, together with its Wick monomials filtered by dimension, appears to do it. `shortDistance` then holds after tuning one constant. `excludes` adds nothing, because no finite `wickProfile` can have r⁸ log²(1/r) times it tend to a positive limit. The submission README already says that a "general exclusion of continuous-mass generalized free fields" is outside its scope. I have not formalized this step, and it is the one an expert should check first.
+
+If the chain holds, then L-stmt-0001 and L-stmt-0002 are met by a field whose Källén–Lehmann density vanishes below some m₀ > 0. L-stmt-0004 is met by any such field, because `SubsequenceIndependent C` holds at once for a constant-insertion family. The twin L-stmt-0105 is met by a field whose density reaches down to mass 0. None of these says anything about Yang–Mills. `JointExistence` has the same weakness, and the October construction gives it content through the witness it builds.
+
+`PhaseAgreementTarget` escapes. With `PhasesAgree T` the selected phase equals the lattice limit, a constant-insertion or position-only family makes that limit a product of one-point functions, and `TraceTest.shortDistance` fails. The bridge escapes too, because it quantifies over every reconstructed hierarchy and holds or fails on its own terms.
+
+**Proposed repair.** `Statement.lean` is frozen (D-I-P-2), so this needs new step ids. Add `PhasesAgree T` inside the existential of L-stmt-0001, L-stmt-0002 and L-stmt-0004, and as a hypothesis of L-stmt-0005. The first would read
+
+```lean
+∀ g : GaugeGroup, g.IsSimple → ∃ C : WilsonFamily g, WilsonRegularity C ∧
+  ∀ p : ℕ → ℕ, StrictMono p → ∃ q : ℕ → ℕ, StrictMono q ∧
+    ∃ T : Hierarchy C, T.Properties (p ∘ q) ∧ PhasesAgree T ∧ HasMassGap T.theory
+```
+
+This ties the selected phase to the Wilson measure through the chosen insertions. The text elaborates as `PinnedMassGapTarget` in the scratch file, and the lemma `pinned_strengthens` there proves that it implies both `MassGapTarget` and `PhaseAgreementTarget`. Two freedoms remain for expert review: the running slope in `WilsonRegularity.running`, which section 4.6 already flags, and the normalisation of the insertions, which can absorb the constant in `TraceTest`.
+
+### 8.5 Sampled seeds of other programs
+
+| Step | Verdict |
+|---|---|
+| L-clu-0002, L-clu-0005, L-clu-0006 | true; integrability holds because the measure lives on energies ≥ 0, or, for L-clu-0006, on p₀ ≥ m |
+| L-clu-0007 | **disputed**: the clustering clause is immediate for constant insertions (`truncated_moment_constant`), and the existence conjunct falls to 8.4 |
+| L-clu-0008 | **disputed**: a massive generalized free field over a constant-insertion family appears to satisfy it (8.4) |
+| L-lat-0013 | true; `wilsonEnergy` is continuous, the product σ-algebra on configurations is Borel, and the normaliser is finite and positive |
+| L-lat-0017, L-rg-0008 | faithful forms of the weak-coupling lattice gap; L-rg-0008 is the stronger one with m ≥ m₀·exp(−cβ) |
+| L-lat-0018 | not disputed, since the decay clause uses plaquettes directly; its context says the existence conjunct ties the family to the construction, and 8.4 shows it does not |
+| L-rg-0005, L-rg-0009 | true |
+| L-uniq-0005 | true at strong coupling for every compact group |
+| L-uniq-0006 | **disputed**: the second `∀ (g : GaugeGroup)` shadows the first, so `IsSimple` is unused; lemma `uniq_0006_shadowed` proves the recorded text means "if a simple gauge group exists, the limit exists for every gauge group" |
+| L-uniq-0007 | **disputed**: constant insertions converge along every volume order, and the existence conjunct falls to 8.4 |
+| L-largeN-0005 | plausible and hard; β = b(n + 1)² with the energy normalised by n + 1 is 't Hooft scaling |
+| L-largeN-0006 | open; the bound must hold on every periodic box uniformly in N, and small boxes at large N can break center symmetry, which an expert should look at |
+
+I found no open target in this sample that a degenerate witness proves or refutes inside Lean today. The constant-insertion route needs the analysis in step 5 of 8.4, which is real work, but the result would not be about Yang–Mills.
+
+### 8.6 What this review changed
+
+The faithfulness of L-stmt-0001, L-stmt-0002, L-stmt-0004, L-stmt-0005, L-clu-0007, L-clu-0008, L-uniq-0006 and L-uniq-0007 is now `disputed` in `content/seeds`, with a note in each `context_md`. The review state at the top of this file now names the disputed targets. The module comment of `MassGap/Statement.lean` still says `seat_reviewed`; changing it is for the statement owner, since the file is frozen.
+
+### 8.7 The repaired steps
+
+`Statement.lean` is frozen (D-I-P-2), so the repair of 8.4 went in as four new steps whose recorded text adds `PhasesAgree T`. The old steps remain open with faithfulness `disputed`.
+
+| Disputed step | Repaired step | Change |
+|---|---|---|
+| L-stmt-0001 | L-stmt-0007 | `PhasesAgree T` inside the existential, before `HasMassGap T.theory` |
+| L-stmt-0002 | L-stmt-0008 | `PhasesAgree T` inside the existential, before `HasClusteringGap T` |
+| L-stmt-0004 | L-stmt-0009 | `PhasesAgree T` inside the existence clause; `SubsequenceIndependent C` unchanged |
+| L-stmt-0005 | L-stmt-0013 | `PhasesAgree T` as a hypothesis after `T.Properties order` |
+
+L-stmt-0007 has the text of `PinnedMassGapTarget` in `scratch-seeds/review/Independent.lean`, where `pinned_strengthens` proves that it implies L-stmt-0001 and L-stmt-0006. The four texts and their twins elaborate under the step header with `autoImplicit` off (`scratch-seeds/Seeds_stmt.lean`). Their faithfulness is `unreviewed`: the repair rests on step 5 of 8.4, which nobody has formalized, and on the two freedoms named there, the running slope and the normalisation of the insertions. The same defect touches L-clu-0007, L-clu-0008 and L-uniq-0007 in other programs. Repaired forms of those three would need `MassGap.Statement` among their imports and are not recorded yet.

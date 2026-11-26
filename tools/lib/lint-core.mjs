@@ -16,7 +16,15 @@ export const bannedTokens = [
   "macro_rules", "elab_rules", "declare_syntax_cat", "builtin_initialize", "run_cmd", "run_tac",
   "run_elab", "run_meta", "by_elab", "simproc", "dsimproc", "simproc_decl", "dsimproc_decl",
   "infix", "infixl", "infixr", "prefix", "postfix", "binder_predicate", "register_simp_attr",
-  "register_option", "register_builtin_option", "declare_simp_like_tactic"
+  "register_option", "register_builtin_option", "declare_simp_like_tactic",
+  "tactic", "plausible", "slim_check", "polyrith",
+  "unsafeIO", "unsafeBaseIO", "unsafeEIO", "unsafeCast", "ptrAddrUnsafe"
+];
+
+export const bannedNameParts = [
+  "Lean", "IO", "EIO", "BaseIO", "System", "Elab", "Meta", "Environment",
+  "CoreM", "MetaM", "TermElabM", "TacticM", "CommandElabM",
+  "evalExpr", "evalConst", "reduceBool", "reduceNat", "ofReduceBool", "ofReduceNat"
 ];
 
 export const allowedSetOptions = ["maxRecDepth", "maxHeartbeats", "synthInstance.maxSize", "synthInstance.maxHeartbeats"];
@@ -406,12 +414,45 @@ function checkSetOption(tokens, index, findings) {
   findings.push(finding("set_option_disallowed", theToken.offset, "set_option must sit directly above a declaration"));
 }
 
+export function bannedNamePart(name) {
+  const theParts = name.split(".");
+  for (let n = 0; n < theParts.length; n++) {
+    const thePart = theParts[n];
+    const theLower = thePart.toLowerCase();
+    if (theLower.indexOf("unsafe") != -1) {
+      return thePart;
+    }
+    if (bannedNameParts.indexOf(thePart) != -1) {
+      return thePart;
+    }
+  }
+  return null;
+}
+
+function gluedPercent(tokens, index) {
+  const theToken = tokens[index];
+  const theNext = tokens[index + 1];
+  if (theNext == undefined || theNext.text != "%") {
+    return false;
+  }
+  return theNext.offset == theToken.offset + theToken.text.length;
+}
+
 export function scanTokens(tokens, findings) {
   for (let n = 0; n < tokens.length; n++) {
     const theToken = tokens[n];
     if (theToken.kind == "ident") {
       if (bannedTokens.indexOf(theToken.text) != -1) {
         findings.push(finding("banned_token", theToken.offset, theToken.text + " is not allowed"));
+      } else {
+        const thePart = bannedNamePart(theToken.text);
+        if (thePart != null) {
+          findings.push(finding("banned_token", theToken.offset, theToken.text + " is not allowed, names with " + thePart + " reach the compiler or the system"));
+        }
+      }
+      const theGlued = gluedPercent(tokens, n);
+      if (theGlued == true) {
+        findings.push(finding("banned_token", theToken.offset, theToken.text + "% is not allowed, elaborators ending in % can run code while compiling (write a % b with spaces for the remainder)"));
       }
       if (theToken.text == "import") {
         findings.push(finding("import_disallowed", theToken.offset, "imports belong in the fixed header only"));

@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { runCheck } from "./check-step.mjs";
 import { parseArguments } from "./lib/repo-io.mjs";
 import { isLemmaId } from "./lib/conventions.mjs";
 
 const toolsDir = path.dirname(fileURLToPath(import.meta.url));
-const semanticCodes = ["statement_mismatch", "definition_mismatch", "forbidden_axiom", "helper_name", "kernel_rejected", "missing_theorem", "import_mismatch", "build_failed"];
+const semanticCodes = ["statement_mismatch", "definition_mismatch", "forbidden_axiom", "helper_name", "kernel_rejected", "missing_theorem", "import_mismatch", "build_failed", "duplicate_declaration", "olean_inconsistent"];
+const forgeSeconds = 900;
 
 export function reasonCode(reason) {
   if (reason == null) {
@@ -55,7 +58,42 @@ export function loadControl(dir) {
   if (Array.isArray(theControl.changes) == false || theControl.expected == undefined) {
     throw new Error("control " + dir + " needs changes and expected");
   }
+  if (theControl.forge != undefined && /^[A-Za-z][A-Za-z0-9_]*\.lean$/.test(theControl.forge) == false) {
+    throw new Error("control " + dir + " names a forge script that is not a plain .lean file beside it");
+  }
   return theControl;
+}
+
+export function forgeOlean(proofs, dir, control, target) {
+  const theScript = path.join(dir, control.forge);
+  const theStatement = path.join(dir, "statements", control.lemma_id + ".txt");
+  const theResult = spawnSync("lake", ["env", "lean", "--run", theScript, control.lemma_id, theStatement, target], {
+    cwd: proofs,
+    encoding: "utf8",
+    timeout: forgeSeconds * 1000,
+    killSignal: "SIGKILL",
+    maxBuffer: 16777216
+  });
+  if (theResult.status != 0 || fs.existsSync(target) == false) {
+    const theOutput = String(theResult.stdout ?? "") + " " + String(theResult.stderr ?? "");
+    throw new Error("the forge script " + control.forge + " did not write a module: " + theOutput.trim().slice(0, 300));
+  }
+}
+
+function checkControl(proofs, dir, control, options) {
+  const theForged = control.forge != undefined && options.phase != "lint";
+  if (theForged == false) {
+    return runCheck(options);
+  }
+  const theTemp = fs.mkdtempSync(path.join(os.tmpdir(), "mg-forge-"));
+  try {
+    const theTarget = path.join(theTemp, "forged.olean");
+    forgeOlean(proofs, dir, control, theTarget);
+    const theForgedOptions = Object.assign({}, options, { phase: "semantic", olean: theTarget, "in-place": true });
+    return runCheck(theForgedOptions);
+  } finally {
+    fs.rmSync(theTemp, { recursive: true, force: true });
+  }
 }
 
 function runOne(proofs, dir, control, lintonly) {
@@ -73,7 +111,7 @@ function runOne(proofs, dir, control, lintonly) {
   }
   let theResult = null;
   try {
-    theResult = runCheck(theOptions);
+    theResult = checkControl(proofs, dir, control, theOptions);
   } catch (error) {
     theResult = { verdict: "FAULT", reason: "the checker failed: " + error.message };
   }

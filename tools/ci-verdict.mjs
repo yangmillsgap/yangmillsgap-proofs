@@ -4,6 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArguments } from "./lib/repo-io.mjs";
 import { cleanReason } from "./lib/verdict-core.mjs";
+import { lastVerdictLine } from "./lib/pipeline.mjs";
+
+const maxLogBytes = 1048576;
 
 function readJson(file) {
   if (file == undefined || fs.existsSync(file) == false) {
@@ -14,6 +17,39 @@ function readJson(file) {
   } catch (error) {
     return null;
   }
+}
+
+function readLog(file) {
+  if (file == undefined || fs.existsSync(file) == false) {
+    return null;
+  }
+  const theStat = fs.lstatSync(file);
+  if (theStat.isFile() == false) {
+    return null;
+  }
+  const theBytes = fs.readFileSync(file);
+  const theTail = theBytes.subarray(Math.max(0, theBytes.length - maxLogBytes));
+  return theTail.toString("utf8");
+}
+
+export function buildFromLog(text, exitcode, oleanok) {
+  if (text == null) {
+    return null;
+  }
+  const theLine = lastVerdictLine(text);
+  if (theLine == null) {
+    return null;
+  }
+  if (theLine.verdict != "ACCEPTED") {
+    return theLine;
+  }
+  if (exitcode != 0) {
+    return { verdict: "FAULT", reason: "the build printed ACCEPTED but its container exited with " + exitcode };
+  }
+  if (oleanok != true) {
+    return { verdict: "FAULT", reason: "the build printed ACCEPTED but did not leave exactly one regular .olean file" };
+  }
+  return theLine;
 }
 
 function exitReason(code, stage) {
@@ -54,10 +90,13 @@ export function composeVerdict(input) {
 function main() {
   const theOptions = parseArguments(process.argv.slice(2), []);
   const theLint = readJson(theOptions.lint);
+  const theBuildExit = Number.parseInt(theOptions["build-exit"] ?? "0", 10);
+  const theOleanOk = theOptions["olean-ok"] == "1";
+  const theBuildLog = readLog(theOptions["build-log"]);
   const theComposed = composeVerdict({
     lint: theLint,
-    build: readJson(theOptions.build),
-    buildExit: Number.parseInt(theOptions["build-exit"] ?? "0", 10),
+    build: buildFromLog(theBuildLog, theBuildExit, theOleanOk),
+    buildExit: theBuildExit,
     semantic: readJson(theOptions.semantic),
     semanticExit: Number.parseInt(theOptions["semantic-exit"] ?? "0", 10)
   });

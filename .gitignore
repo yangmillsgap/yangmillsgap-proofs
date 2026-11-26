@@ -5,4 +5,6 @@
 /logs/
 /dist/
 node_modules/
-scratch-seeds/
+/scratch-seeds/proved/
+/scratch-seeds/review-sec/
+/scratch-seeds/stmt/Proofs.lean

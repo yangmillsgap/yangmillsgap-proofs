@@ -18,7 +18,7 @@ cd "$proofs"
 
 if [ "$phase" = "build" ]; then
   exec node "$proofs/tools/check-step.mjs" --proofs "$proofs" --pr "$pr" --file "$file" \
-    --in-place --phase build --out "$out" --json "$out/build.json" --time-limit 1200
+    --in-place --phase build --time-limit 1200
 fi
 
 if [ "$phase" = "semantic" ]; then

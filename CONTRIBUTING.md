@@ -37,7 +37,7 @@ Comments are stripped first, so a comment may mention anything. Words count only
 
 | Reason | What it means |
 |---|---|
-| `banned_token` | `sorry`, `admit`, `axiom`, `native_decide`, `native`, `macro`, `macro_rules`, `syntax`, `notation`, `infix` and its relatives, `elab`, `elab_rules`, `initialize`, `implemented_by`, `extern`, `unsafe`, `run_cmd`, `run_tac`, `run_elab`, `run_meta`, `simproc` and the other words that define syntax or run code while compiling |
+| `banned_token` | `sorry`, `admit`, `axiom`, `native_decide`, `native`, `macro`, `macro_rules`, `syntax`, `notation`, `infix` and its relatives, `elab`, `elab_rules`, `initialize`, `implemented_by`, `extern`, `unsafe`, `run_cmd`, `run_tac`, `run_elab`, `run_meta`, `simproc` and the other words that define syntax or run code while compiling; any elaborator written as a name glued to `%` such as `eval%` (write the remainder as `a % b`); `tactic`, `plausible`, `slim_check`, `polyrith`; names with a part that contains `unsafe` or a part among `Lean`, `IO`, `EIO`, `BaseIO`, `System`, `Elab`, `Meta`, `Environment` and the metaprogramming monads |
 | `hash_command` | any `#` command such as `#eval`, `#print` or `#exit`, and any line that starts with `#` |
 | `string_literal` | string literals of any kind, including `s!"…"`, raw strings and character literals such as `'a'` |
 | `quotation`, `escaped_identifier` | backticks and `«…»` names, which only metaprograms need |

@@ -1,0 +1,17 @@
+{
+  "name": "eval_percent",
+  "lemma_id": "L-ctl-0020",
+  "description": "Evaluates a term at compile time with eval% and reaches IO through unsafeIO. The term here is harmless.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0020.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "banned_token",
+    "reason_contains": "eval%"
+  }
+}

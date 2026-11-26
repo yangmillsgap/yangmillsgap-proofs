@@ -74,16 +74,34 @@ jobs:
         if: steps.lint.outputs.code == '0' && steps.image.outcome == 'success'
         run: |
           set +e
-          timeout 1260 docker run --rm --network none \
+          name="mg-build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          stem="$(basename "$STEP_FILE" .lean)"
+          timeout 1260 docker run --name "$name" --network none \
             --memory 6500m --memory-swap 6500m --cpus 2 --pids-limit 2048 \
             --cap-drop ALL --security-opt no-new-privileges \
-            -v "$PWD/base:/work/base:ro" -v "$PWD/pr:/work/pr:ro" -v "$PWD/out-build:/work/out" \
-            "$IMAGE" bash /work/base/tools/ci-container.sh build "$STEP_FILE"
-          echo "BUILD_EXIT=$?" >> "$GITHUB_ENV"
+            -v "$PWD/base:/work/base:ro" -v "$PWD/pr:/work/pr:ro" \
+            "$IMAGE" bash /work/base/tools/ci-container.sh build "$STEP_FILE" 2>&1 \
+            | tail -c 1048576 > out/build.log
+          code="${PIPESTATUS[0]}"
+          echo "BUILD_EXIT=$code" >> "$GITHUB_ENV"
+          tail -n 40 out/build.log
+          docker kill "$name" > /dev/null 2>&1
+          docker cp "$name:/opt/proofs/.lake/build/lib/lean/MassGap/Outside/$stem.olean" "out-build/$stem.olean"
+          docker rm -f "$name" > /dev/null 2>&1
+          count="$(find out-build -mindepth 1 | wc -l | tr -d '[:space:]')"
+          olean="out-build/$stem.olean"
+          if [ "$count" = "1" ] && [ -f "$olean" ] && [ ! -L "$olean" ] && [ "$(stat -c %s "$olean")" -le 67108864 ]; then
+            echo "OLEAN_OK=1" >> "$GITHUB_ENV"
+          else
+            rm -rf out-build
+            mkdir -p out-build
+            echo "OLEAN_OK=0" >> "$GITHUB_ENV"
+          fi
+          exit 0
 
       - name: Compare with the statement and replay in the kernel, in a fresh container
         id: semantic
-        if: steps.build.outcome == 'success' && hashFiles('out-build/*.olean') != ''
+        if: steps.build.outcome == 'success' && env.OLEAN_OK == '1'
         run: |
           set +e
           timeout 960 docker run --rm --network none \
@@ -98,7 +116,7 @@ jobs:
         if: always()
         run: |
           node base/tools/ci-verdict.mjs --lint out/lint.json \
-            --build out-build/build.json --build-exit "${BUILD_EXIT:-0}" \
+            --build-log out/build.log --build-exit "${BUILD_EXIT:-0}" --olean-ok "${OLEAN_OK:-0}" \
             --semantic out-semantic/semantic.json --semantic-exit "${SEMANTIC_EXIT:-0}" \
             --pr-number "$PR_NUMBER" --head-sha "$HEAD_SHA" --started-at "$STARTED_AT" \
             --out out/verdict.json | tee out/verdict.txt

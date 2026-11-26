@@ -1,0 +1,17 @@
+{
+  "name": "aesop_tactic",
+  "lemma_id": "L-ctl-0021",
+  "description": "Adds an aesop rule built from a tactic value, which aesop would evaluate while compiling.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0021.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "banned_token",
+    "reason_contains": "tactic"
+  }
+}

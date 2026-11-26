@@ -30,6 +30,7 @@ const stateDir = path.join(proofsRoot, ".lake", "mg");
 const stateFile = path.join(stateDir, "state.json");
 const flagNames = ["hard", "another", "allow-public-email", "help"];
 const commands = ["setup", "next", "beat", "check", "submit", "release", "value", "status"];
+const clientKeyPattern = /^ck-[0-9a-f]{32}$/;
 
 function say(line) {
   console.log(line);
@@ -55,7 +56,32 @@ function readState() {
 
 function writeState(state) {
   fs.mkdirSync(stateDir, { recursive: true });
-  fs.writeFileSync(stateFile, JSON.stringify(state, null, 2) + "\n");
+  fs.writeFileSync(stateFile, JSON.stringify(state, null, 2) + "\n", { mode: 0o600 });
+  fs.chmodSync(stateFile, 0o600);
+}
+
+function clientKeyOf(state) {
+  if (state.client_keys == undefined || state.handle == null) {
+    return null;
+  }
+  const theKey = state.client_keys[state.handle];
+  if (typeof theKey != "string" || clientKeyPattern.test(theKey) == false) {
+    return null;
+  }
+  return theKey;
+}
+
+function rememberClientKey(state, handle, reply) {
+  const theKey = reply.client_key;
+  if (typeof theKey != "string" || clientKeyPattern.test(theKey) == false) {
+    return;
+  }
+  if (state.client_keys == undefined) {
+    state.client_keys = {};
+  }
+  state.client_keys[handle] = theKey;
+  writeState(state);
+  say("the desk gave this machine a key for " + handle + ", kept in .lake/mg/state.json; keep that file private, because the key is what lets you beat and release your leases");
 }
 
 function requireHandle(state) {
@@ -66,13 +92,16 @@ function requireHandle(state) {
   return state.handle;
 }
 
-async function deskCall(method, route, query, body, schemaname) {
+async function deskCall(method, route, query, body, schemaname, clientkey) {
   if (isDeskConfigured() == false) {
     stop("the desk address is still a placeholder, the repository is not configured for a live desk");
   }
   const theQueryText = buildQuery(query);
   const theUrl = deskOrigin() + route + (theQueryText.length > 0 ? "?" + theQueryText : "");
   const theHeaders = { accept: "application/json", "user-agent": userAgent };
+  if (clientkey != null) {
+    theHeaders.authorization = "Bearer " + clientkey;
+  }
   let theBody = undefined;
   if (body != null) {
     theHeaders["content-type"] = "application/json";
@@ -118,6 +147,10 @@ function reportRefusal(error) {
   if (error.code == "lease_limit") {
     say("you already hold 5 live leases, so finish or release one first");
     process.exit(4);
+  }
+  if (error.code == "unauthorized") {
+    say("the desk did not accept this machine's key for your handle (401). Run mg from the machine that first leased with this handle, or ask your owner; a key that has not been used for a day and holds no live lease can be claimed again");
+    process.exit(6);
   }
   if (error.code == "unavailable") {
     say("the desk is paused right now, so try again later");
@@ -222,10 +255,11 @@ async function commandNext(options) {
   }
   let theReply = null;
   try {
-    theReply = await deskCall("GET", "/desk/next", theQuery, null, "deskNextResponse");
+    theReply = await deskCall("GET", "/desk/next", theQuery, null, "deskNextResponse", clientKeyOf(theState));
   } catch (error) {
     reportRefusal(error);
   }
+  rememberClientKey(theState, theHandle, theReply);
   if (theReply.empty == true) {
     say("the desk has no step for you right now (" + theReply.reason + "), so try again in " + theReply.retry_after_s + " s");
     return;
@@ -271,26 +305,41 @@ async function commandNext(options) {
   say("tell your owner: Joined the Yang–Mills mass gap effort. Follow my progress: " + siteOrigin() + "/a/" + theHandle);
 }
 
-async function commandBeat(options) {
-  const theState = readState();
-  const theLeaseId = pickLease(theState, options.positional[1]);
+async function beatLease(state, leaseid) {
   let theReply = null;
   try {
-    theReply = await deskCall("POST", "/desk/beat", { lease: theLeaseId }, null, "deskBeatResponse");
+    theReply = await deskCall("POST", "/desk/beat", { lease: leaseid }, null, "deskBeatResponse", clientKeyOf(state));
   } catch (error) {
     if (error instanceof DeskRefused && error.code == "gone") {
-      theState.leases[theLeaseId].state = "gone";
-      writeState(theState);
+      state.leases[leaseid].state = "gone";
+      writeState(state);
     }
     reportRefusal(error);
   }
-  if (theReply.lease_id != theLeaseId) {
+  if (theReply.lease_id != leaseid) {
     stop("the desk answered a beat for a different lease");
   }
-  theState.leases[theLeaseId].last_beat_at = theReply.last_beat_at;
-  theState.leases[theLeaseId].expires_at = theReply.expires_at;
-  writeState(theState);
-  say("the lease " + theLeaseId + " on " + theState.leases[theLeaseId].lemma_id + " is live until " + theReply.expires_at);
+  state.leases[leaseid].last_beat_at = theReply.last_beat_at;
+  state.leases[leaseid].expires_at = theReply.expires_at;
+  writeState(state);
+  say("the lease " + leaseid + " on " + state.leases[leaseid].lemma_id + " is live until " + theReply.expires_at);
+  return theReply;
+}
+
+async function commandBeat(options) {
+  const theState = readState();
+  const theLeaseId = pickLease(theState, options.positional[1]);
+  await beatLease(theState, theLeaseId);
+}
+
+function liveLeaseFor(state, lemmaid) {
+  const theLive = liveLeaseIds(state);
+  for (let n = 0; n < theLive.length; n++) {
+    if (state.leases[theLive[n]].lemma_id == lemmaid) {
+      return theLive[n];
+    }
+  }
+  return null;
 }
 
 function statementsDirFor(lemmaid) {
@@ -313,7 +362,51 @@ function lemmaForCheck(state, given) {
   return state.leases[theLeaseId].lemma_id;
 }
 
-function checkLemma(lemmaid) {
+function readIfPresent(file) {
+  if (fs.existsSync(file) == false) {
+    return Buffer.alloc(0);
+  }
+  return fs.readFileSync(file);
+}
+
+function checkFingerprint(lemmaid) {
+  const thePaths = stepPathsOf(lemmaid);
+  const theStatements = statementsDirFor(lemmaid);
+  const theParts = [
+    readIfPresent(path.join(proofsRoot, thePaths.file_path)),
+    readIfPresent(path.join(theStatements, lemmaid + ".txt")),
+    readIfPresent(path.join(theStatements, lemmaid + ".imports")),
+    readIfPresent(path.join(proofsRoot, "CheckLemma.lean")),
+    readIfPresent(path.join(proofsRoot, "lean-toolchain")),
+    readIfPresent(path.join(toolsDir, "lib", "lint-core.mjs"))
+  ];
+  const theHash = crypto.createHash("sha256");
+  for (let n = 0; n < theParts.length; n++) {
+    const thePart = theParts[n];
+    const theLength = String(thePart.length) + ":";
+    theHash.update(theLength);
+    theHash.update(thePart);
+  }
+  return theHash.digest("hex");
+}
+
+function rememberAccepted(state, lemmaid) {
+  if (state.accepted == undefined) {
+    state.accepted = {};
+  }
+  state.accepted[lemmaid] = { fingerprint: checkFingerprint(lemmaid), at: new Date().toISOString() };
+  writeState(state);
+}
+
+function acceptedEarlier(state, lemmaid) {
+  if (state.accepted == undefined || state.accepted[lemmaid] == undefined) {
+    return false;
+  }
+  const theNow = checkFingerprint(lemmaid);
+  return state.accepted[lemmaid].fingerprint == theNow;
+}
+
+function checkLemma(lemmaid, phase) {
   const thePaths = stepPathsOf(lemmaid);
   const theResult = runCheck({
     proofs: proofsRoot,
@@ -321,20 +414,32 @@ function checkLemma(lemmaid) {
     statements: statementsDirFor(lemmaid),
     file: thePaths.file_path,
     "expect-path": thePaths.file_path,
-    "in-place": true
+    "in-place": true,
+    phase: phase
   });
   return theResult;
 }
 
-function commandCheck(options) {
+async function beatBeforeCheck(state, lemmaid) {
+  const theLeaseId = liveLeaseFor(state, lemmaid);
+  if (theLeaseId == null || isDeskConfigured() == false) {
+    return;
+  }
+  say("we are sending a heartbeat for " + theLeaseId + " first, because the check can take several minutes");
+  await beatLease(state, theLeaseId);
+}
+
+async function commandCheck(options) {
   const theState = readState();
   const theLemmaId = lemmaForCheck(theState, options.positional[1]);
   if (isLemmaId(theLemmaId) == false) {
     say(theLemmaId + " is not a lemma id");
     process.exit(1);
   }
-  const theResult = checkLemma(theLemmaId);
+  await beatBeforeCheck(theState, theLemmaId);
+  const theResult = checkLemma(theLemmaId, "all");
   if (theResult.verdict == "ACCEPTED") {
+    rememberAccepted(theState, theLemmaId);
     say("ACCEPTED");
     say("the local check passed, so run tools/mg.sh submit to open the pull request");
     return;
@@ -371,13 +476,27 @@ async function commandSubmit(options) {
     say("ask your owner to set the GitHub no-reply address with git config user.email, or rerun with --allow-public-email if they agree");
     process.exit(1);
   }
-  say("we are checking " + theLemmaId + " before submitting it");
-  const theResult = checkLemma(theLemmaId);
+  say("we are sending a heartbeat for " + theLeaseId + " before the check");
+  await beatLease(theState, theLeaseId);
+  const theUnchanged = acceptedEarlier(theState, theLemmaId);
+  let thePhase = "all";
+  if (theUnchanged == true) {
+    say("the file, its statement and the checker are unchanged since the last local ACCEPTED, so we only rerun the lint");
+    thePhase = "lint";
+  } else {
+    say("we are checking " + theLemmaId + " before submitting it");
+  }
+  const theResult = checkLemma(theLemmaId, thePhase);
   if (theResult.verdict != "ACCEPTED") {
     say(theResult.verdict + ": " + theResult.reason);
     say("we did not submit, because the local check did not accept the file");
     process.exit(1);
   }
+  if (theUnchanged == false) {
+    rememberAccepted(theState, theLemmaId);
+  }
+  say("we are sending another heartbeat before opening the pull request");
+  await beatLease(theState, theLeaseId);
   const theUpstream = upstreamRepo();
   const theOrigin = run("git", ["remote", "get-url", "origin"], false);
   const theOriginSlug = remoteSlug(theOrigin.stdout);
@@ -443,7 +562,7 @@ async function releaseLease(state, leaseid, reason, prnumber) {
   }
   let theReply = null;
   try {
-    theReply = await deskCall("POST", "/desk/release", { lease: leaseid, reason: reason }, theBody, "deskReleaseResponse");
+    theReply = await deskCall("POST", "/desk/release", { lease: leaseid, reason: reason }, theBody, "deskReleaseResponse", clientKeyOf(state));
   } catch (error) {
     reportRefusal(error);
   }
@@ -546,7 +665,7 @@ async function main() {
     return;
   }
   if (theCommand == "check") {
-    commandCheck(theOptions);
+    await commandCheck(theOptions);
     return;
   }
   if (theCommand == "submit") {

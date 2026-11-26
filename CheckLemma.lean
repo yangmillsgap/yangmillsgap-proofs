@@ -24,12 +24,15 @@ What it checks, in order:
 2. The submitted module is read as data with `readModuleData`. Its imports must equal the recorded
    imports, it must hold a `theorem` with the conventional name and no universe parameters, and
    every other declaration must be `private` or named under the theorem.
+   Each declaration must appear once, the module's name list must match its declarations, and no
+   declaration may share a name with one from the recorded imports.
 3. The theorem's type must not mention any declaration of the submitted module, and must be equal
    to the reference type as an expression, up to binder names and binder annotations
    (`Lean.Expr.eqv`). Definitional equality is not enough.
 4. Every declaration of the submitted module is sent to the kernel again on top of the reference
    imports with `Lean.Environment.replay`, the core version of `lean4checker`'s replay. The
-   theorem must survive the replay.
+   theorem must survive the replay, and the type of the kernel-checked theorem is compared with
+   the reference again, so the declaration that was compared is the one the kernel checked.
 5. The axioms the theorem depends on, collected in the replayed environment, must be among
    `propext`, `Classical.choice` and `Quot.sound`.
 
@@ -166,6 +169,22 @@ def axiomsOf (env : Environment) (thm : Name) : CheckM (Array Name) := do
   | .ok (axioms, _) => return axioms
   | .error err => fault s!"could not collect axioms: {clip (toString err)}"
 
+/-- The submitted module must list each declaration once, under the name the declaration carries,
+and must not redeclare anything the recorded imports already declare. `find?` on the constant
+array takes the first entry with a name while the replay map keeps the last, so a duplicate would
+let the type check and the kernel look at two different declarations. -/
+def checkConstantList (base : Environment) (modData : ModuleData) : CheckM Unit := do
+  unless modData.constNames == modData.constants.map (·.name) do
+    reject "olean_inconsistent" "the module's list of names does not match its declarations"
+  let mut seen : NameSet := {}
+  for c in modData.constants do
+    if seen.contains c.name then
+      reject "duplicate_declaration" s!"the file declares {c.name} more than once"
+    if base.contains c.name then
+      reject "duplicate_declaration"
+        s!"the file declares {c.name}, which the recorded imports already declare"
+    seen := seen.insert c.name
+
 def run (args : List String) : CheckM Unit := do
   let (id, statementPath, oleanPath, importArgs) ← match args with
     | id :: statementPath :: oleanPath :: rest@(_ :: _) =>
@@ -193,6 +212,7 @@ def run (args : List String) : CheckM Unit := do
   unless modImports == imports do
     reject "import_mismatch"
       s!"the file imports {modImports.toList}, the step records {imports.toList}"
+  checkConstantList base modData
   let some info := modData.constants.find? (·.name == thm) |
     reject "missing_theorem" s!"the file declares no theorem named {thm}"
   let .thmInfo thmVal := info |
@@ -218,8 +238,15 @@ def run (args : List String) : CheckM Unit := do
   let replayed ← match replayResult with
     | .ok env => pure env
     | .error err => reject "kernel_rejected" (clip (toString err))
-  let some (.thmInfo _) := replayed.toKernelEnv.find? thm |
+  let some (.thmInfo checked) := replayed.toKernelEnv.find? thm |
     reject "kernel_rejected" s!"{thm} did not survive the kernel replay"
+  unless checked.levelParams.isEmpty && checked.type.eqv expected do
+    reject "statement_mismatch"
+      s!"the kernel-checked {thm} does not have the recorded statement of {id}"
+  let ownChecked := checked.type.getUsedConstants.filter modData.constNames.contains
+  unless ownChecked.isEmpty do
+    reject "definition_mismatch"
+      s!"the theorem's type uses definitions from the submitted file: {clip (toString ownChecked.toList)}"
   IO.println s!"info: the kernel accepted all {modData.constants.size} declaration(s) of the file"
   let axioms ← axiomsOf replayed thm
   let axiomText := if axioms.isEmpty then "none" else String.intercalate ", " (axioms.toList.map toString)

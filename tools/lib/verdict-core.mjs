@@ -119,6 +119,38 @@ export function trustedFileCheck(files) {
   return { ok: true, reason: null, lemmaId: theLemmaId };
 }
 
+export function filesOfComparison(comparison) {
+  const theStatus = String(comparison.status ?? "");
+  const theFiles = [];
+  if (theStatus != "ahead" && theStatus != "diverged") {
+    return theFiles;
+  }
+  const theRaw = comparison.files ?? [];
+  for (let n = 0; n < theRaw.length; n++) {
+    theFiles.push({ filename: String(theRaw[n].filename), status: String(theRaw[n].status) });
+  }
+  return theFiles;
+}
+
+export function pickPullForCommit(pulls, runsha, repo, fallback) {
+  const theOpen = [];
+  for (let n = 0; n < pulls.length; n++) {
+    const thePull = pulls[n];
+    const theHead = thePull.head == undefined ? null : thePull.head.sha;
+    const theBase = thePull.base == undefined || thePull.base.repo == undefined ? null : thePull.base.repo.full_name;
+    if (thePull.state == "open" && theHead == runsha && String(theBase).toLowerCase() == repo.toLowerCase()) {
+      theOpen.push(thePull.number);
+    }
+  }
+  if (theOpen.length == 1) {
+    return { number: theOpen[0], note: null };
+  }
+  if (theOpen.length > 1) {
+    return { number: null, note: "more than one open pull request has the head " + runsha + ", so we report on none of them" };
+  }
+  return { number: fallback, note: "GitHub listed no open pull request for " + runsha + ", so we use the number in the artifact, which must still match that head" };
+}
+
 export function decideFinal(input) {
   const thePr = input.pr;
   const theRun = input.run;

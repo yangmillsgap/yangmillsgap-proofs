@@ -11,7 +11,9 @@ import {
   hookHeaders,
   newNonce,
   shaPattern,
-  fleetConfigOf
+  fleetConfigOf,
+  filesOfComparison,
+  pickPullForCommit
 } from "./lib/verdict-core.mjs";
 import { validateAgainst } from "./lib/json-check.mjs";
 import { deskOrigin, siteOrigin, isConfigured } from "./lib/config.mjs";
@@ -40,22 +42,19 @@ function readPullRequest(repo, num) {
     number: thePull.number,
     state: thePull.state,
     head_sha: thePull.head.sha,
+    base_sha: thePull.base.sha,
     user_login: String(thePull.user.login),
     labels: theLabels,
     merge_commit_sha: thePull.merge_commit_sha
   };
 }
 
-function readPullFiles(repo, num) {
-  const thePages = ghJson(["api", "--paginate", "--slurp", "repos/" + repo + "/pulls/" + num + "/files?per_page=100"]);
-  const theFiles = [];
-  for (let n = 0; n < thePages.length; n++) {
-    const thePage = thePages[n];
-    for (let i = 0; i < thePage.length; i++) {
-      theFiles.push({ filename: String(thePage[i].filename), status: String(thePage[i].status) });
-    }
+function readRunFiles(repo, basesha, runsha) {
+  if (shaPattern.test(basesha) == false) {
+    throw new Error("the pull request has no valid base commit");
   }
-  return theFiles;
+  const theComparison = ghJson(["api", "repos/" + repo + "/compare/" + basesha + "..." + runsha]);
+  return filesOfComparison(theComparison);
 }
 
 function readArtifact(dir) {
@@ -74,15 +73,28 @@ function readArtifact(dir) {
   return { artifact: theParsed.artifact, error: null };
 }
 
-function prNumberFrom(env, artifact) {
+function prNumberFrom(env, artifact, repo, runsha) {
   const theFromRun = Number.parseInt(env.RUN_PR_NUMBER ?? "", 10);
   if (Number.isInteger(theFromRun) == true && theFromRun > 0) {
     return theFromRun;
   }
-  if (artifact != null) {
-    return artifact.pr_number;
+  const theFromArtifact = artifact == null ? null : artifact.pr_number;
+  const theLookup = gh(["api", "repos/" + repo + "/commits/" + runsha + "/pulls"], undefined);
+  if (theLookup.ok == false) {
+    console.log("we could not list the pull requests of " + runsha + ", so we use the number in the artifact");
+    return theFromArtifact;
   }
-  return null;
+  let thePulls = [];
+  try {
+    thePulls = JSON.parse(theLookup.stdout);
+  } catch (error) {
+    thePulls = [];
+  }
+  const thePick = pickPullForCommit(thePulls, runsha, repo, theFromArtifact);
+  if (thePick.note != null) {
+    console.log(thePick.note);
+  }
+  return thePick.number;
 }
 
 async function sendHook(final, runurl, commit, secret, dryrun) {
@@ -140,13 +152,13 @@ async function main() {
   if (theRead.error != null) {
     console.log("the artifact could not be used: " + theRead.error);
   }
-  const theNumber = prNumberFrom(theEnv, theRead.artifact);
+  const theNumber = prNumberFrom(theEnv, theRead.artifact, theRepo, theRunSha);
   if (theNumber == null) {
     console.log("we found no pull request for this run, so there is nothing to report");
     return;
   }
   const thePr = readPullRequest(theRepo, theNumber);
-  const theFiles = readPullFiles(theRepo, theNumber);
+  const theFiles = readRunFiles(theRepo, thePr.base_sha, theRunSha);
   const theRun = {
     head_sha: theRunSha,
     conclusion: theEnv.RUN_CONCLUSION ?? "unknown",
@@ -173,7 +185,14 @@ async function main() {
     }
   }
   if (theFinal.merge == true) {
-    const theMergeArgs = ["pr", "merge", String(theNumber), "--repo", theRepo, "--squash", "--match-head-commit", thePr.head_sha];
+    const theFresh = readPullRequest(theRepo, theNumber);
+    if (theFresh.state != "open" || theFresh.head_sha != theRunSha) {
+      console.log("we skipped pull request " + theNumber + ": it changed while we were deciding, a newer run will report");
+      return;
+    }
+  }
+  if (theFinal.merge == true) {
+    const theMergeArgs = ["pr", "merge", String(theNumber), "--repo", theRepo, "--squash", "--match-head-commit", theRunSha];
     if (theDryRun == true) {
       console.log("dry run: we would run gh " + theMergeArgs.join(" "));
     } else {

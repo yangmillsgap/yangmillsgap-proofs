@@ -85,6 +85,50 @@ describe("banned tokens", () => {
   });
 });
 
+describe("compile time evaluation", () => {
+  it("rejects any elaborator that ends in %", () => {
+    expect(scan("have h : (eval% (1 : Nat)) = 1 := rfl")).toEqual(["banned_token"]);
+    expect(scan("exact (type_of% h)")).toEqual(["banned_token"]);
+    expect(scan("exact ensure_type_of% h x")).toEqual(["banned_token"]);
+    expect(scan("x n%2")).toEqual(["banned_token"]);
+  });
+
+  it("keeps the remainder operator when it is spaced and percentages after numerals", () => {
+    expect(scan("theorem t (n : ℕ) : n % 2 < 2 := Nat.mod_lt n two_pos")).toEqual([]);
+    expect(scan("by aesop (add norm 50% apply foo)")).toEqual([]);
+  });
+
+  it("rejects the escapes into IO and the tactics that evaluate code", () => {
+    const theWords = ["unsafeIO", "unsafeBaseIO", "unsafeEIO", "unsafeCast", "ptrAddrUnsafe", "tactic", "plausible", "slim_check", "polyrith"];
+    for (let n = 0; n < theWords.length; n++) {
+      expect(scan("x " + theWords[n] + " y")).toEqual(["banned_token"]);
+    }
+  });
+
+  it("rejects names that reach the metaprogramming and system namespaces", () => {
+    const theNames = ["IO.FS.writeFile", "Lean.Elab.Term.evalTerm", "Lean.Meta.evalExpr", "EIO", "BaseIO", "System.FilePath", "Lean.Environment", "TacticM", "Foo.unsafeRun", "Lean.ofReduceBool", "_root_.IO.println"];
+    for (let n = 0; n < theNames.length; n++) {
+      expect(scan("x " + theNames[n] + " y"), theNames[n]).toEqual(["banned_token"]);
+    }
+  });
+
+  it("does not flag ordinary mathematics", () => {
+    expect(scan("exact Polynomial.eval_add, IsOpen.inter, Metric.ball, Ioo_subset, ofReal_le")).toEqual([]);
+  });
+
+  it("rejects the reviewed exploit", () => {
+    const theText = "have h : (eval% (match unsafeIO (IO.FS.writeFile (List.asString [Char.ofNat 112]) (List.asString [Char.ofNat 120])) with | .ok _ => (1 : Nat) | .error _ => 0)) = 1 := rfl";
+    const theCodes = scan(theText);
+    expect(theCodes.length).toBeGreaterThan(0);
+    expect(theCodes.every(function (code) { return code == "banned_token"; })).toBe(true);
+  });
+
+  it("applies the same rules to recorded statements", () => {
+    expect(codesOf(lintStatementText("(eval% (1 : ℕ)) = 1"))).toEqual(["banned_token"]);
+    expect(codesOf(lintStatementText("∀ (f : IO Unit), True"))).toEqual(["banned_token"]);
+  });
+});
+
 describe("hash commands", () => {
   it("rejects #eval anywhere and any line that starts with #", () => {
     expect(scan("#eval 1")).toEqual(["hash_command"]);
@@ -113,7 +157,7 @@ describe("literals", () => {
 
   it("rejects escaped identifiers and quotations", () => {
     expect(scan("«#eval»")).toEqual(["escaped_identifier"]);
-    expect(scan("`(tactic| rfl)")).toEqual(["quotation"]);
+    expect(scan("`(tactic| rfl)")).toEqual(["quotation", "banned_token"]);
   });
 
   it("limits numerals to 20 digits", () => {

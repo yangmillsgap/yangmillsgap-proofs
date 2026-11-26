@@ -10,11 +10,13 @@ import {
   signHook,
   newNonce,
   trustedFileCheck,
+  filesOfComparison,
+  pickPullForCommit,
   cleanReason,
   fleetConfigOf,
   creditedHandle
 } from "../lib/verdict-core.mjs";
-import { composeVerdict } from "../ci-verdict.mjs";
+import { composeVerdict, buildFromLog } from "../ci-verdict.mjs";
 import { validateAgainst } from "../lib/json-check.mjs";
 import { hasMonorepo, monorepoSchemas } from "./helpers.mjs";
 
@@ -220,5 +222,56 @@ describe("composing the CI verdict", () => {
     const theDone = composeVerdict({ lint: { verdict: "PASS" }, build: { verdict: "ACCEPTED" }, semantic: { verdict: "ACCEPTED", reason: null, axioms: "propext" } });
     expect(theDone.verdict).toBe("ACCEPTED");
     expect(theDone.axioms).toBe("propext");
+  });
+
+  it("reads the build verdict from the log the host captured", () => {
+    expect(buildFromLog(null, 0, true)).toBe(null);
+    expect(buildFromLog("we are building\nno verdict here\n", 1, false)).toBe(null);
+    expect(buildFromLog("we are building\nREJECTED: build_failed: x\n", 1, false).verdict).toBe("REJECTED");
+    expect(buildFromLog("we are building\nACCEPTED\n", 0, true).verdict).toBe("ACCEPTED");
+  });
+
+  it("does not trust an ACCEPTED build without its exit code and a single olean", () => {
+    expect(buildFromLog("ACCEPTED\n", 0, false).verdict).toBe("FAULT");
+    expect(buildFromLog("ACCEPTED\n", 2, true).verdict).toBe("FAULT");
+    const theComposed = composeVerdict({ lint: { verdict: "PASS" }, build: buildFromLog("ACCEPTED\n", 0, false), semantic: null });
+    expect(theComposed.verdict).toBe("FAULT");
+    expect(theComposed.phase).toBe("build");
+  });
+});
+
+describe("binding the verdict to the run commit", () => {
+  const theSha = "a".repeat(40);
+  const theOther = "b".repeat(40);
+
+  it("takes the file list from the comparison of the base with the run commit", () => {
+    const theFiles = filesOfComparison({ status: "ahead", files: [{ filename: "MassGap/Outside/L_lib_0042.lean", status: "added", patch: "x" }] });
+    expect(theFiles).toEqual([{ filename: "MassGap/Outside/L_lib_0042.lean", status: "added" }]);
+    expect(filesOfComparison({ status: "diverged", files: [{ filename: "a", status: "added" }] }).length).toBe(1);
+  });
+
+  it("gives no files when the run commit is not ahead of the base", () => {
+    expect(filesOfComparison({ status: "behind", files: [{ filename: "a", status: "added" }] })).toEqual([]);
+    expect(filesOfComparison({ status: "identical" })).toEqual([]);
+    expect(trustedFileCheck(filesOfComparison({ status: "identical" })).ok).toBe(false);
+  });
+
+  it("finds the one open pull request whose head is the run commit", () => {
+    const thePulls = [
+      { number: 7, state: "open", head: { sha: theSha }, base: { repo: { full_name: "Org/Repo" } } },
+      { number: 8, state: "closed", head: { sha: theSha }, base: { repo: { full_name: "org/repo" } } },
+      { number: 9, state: "open", head: { sha: theOther }, base: { repo: { full_name: "org/repo" } } },
+      { number: 10, state: "open", head: { sha: theSha }, base: { repo: { full_name: "someone/fork" } } }
+    ];
+    expect(pickPullForCommit(thePulls, theSha, "org/repo", 99).number).toBe(7);
+  });
+
+  it("reports on none when two open pull requests share the head, and falls back to the artifact when GitHub lists none", () => {
+    const theTwo = [
+      { number: 7, state: "open", head: { sha: theSha }, base: { repo: { full_name: "org/repo" } } },
+      { number: 11, state: "open", head: { sha: theSha }, base: { repo: { full_name: "org/repo" } } }
+    ];
+    expect(pickPullForCommit(theTwo, theSha, "org/repo", 7).number).toBe(null);
+    expect(pickPullForCommit([], theSha, "org/repo", 12).number).toBe(12);
   });
 });

@@ -1,0 +1,17 @@
+{
+  "name": "duplicate_constant",
+  "lemma_id": "L-ctl-0022",
+  "description": "A forged module that declares the step theorem twice, once with the recorded statement and a sorry proof and once as True. The file in pr/ passes the lint; the semantic check runs on the module that Forge.lean writes.",
+  "forge": "Forge.lean",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0022.lean",
+      "mode": "100644"
+    }
+  ],
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "duplicate_declaration"
+  }
+}
