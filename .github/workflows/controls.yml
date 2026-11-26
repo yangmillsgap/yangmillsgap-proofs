@@ -8,6 +8,7 @@ on:
       - "controls/**"
       - "CheckLemma.lean"
       - "Dockerfile"
+      - ".github/workflows/controls.yml"
   workflow_dispatch:
 
 permissions:
