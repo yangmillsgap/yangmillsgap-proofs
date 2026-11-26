@@ -1,0 +1,16 @@
+{
+  "name": "desk_statement",
+  "lemma_id": "L-ctl-0030",
+  "description": "The repository has no statements/L-ctl-0030.txt. The statement is restored from a stubbed desk step view, as CI does for a fleet-created step, and the proof must be ACCEPTED.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0030.lean",
+      "mode": "100644"
+    }
+  ],
+  "desk_step": "desk-step.json",
+  "expected": {
+    "verdict": "ACCEPTED"
+  }
+}

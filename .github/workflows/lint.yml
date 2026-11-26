@@ -38,5 +38,10 @@ jobs:
       - name: Fetch the base commit for the diff
         run: git -C pr fetch --no-tags origin "$BASE_SHA"
 
+      - name: Restore a missing recorded statement from the desk's public step view
+        run: |
+          node base/tools/lib/statement-source.mjs restore --repo pr --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --statements base/statements || true
+
       - name: Lint the pull request with the base branch's rules
         run: node base/tools/check-lean.mjs --repo pr --base "$BASE_SHA" --head "$HEAD_SHA" --statements base/statements

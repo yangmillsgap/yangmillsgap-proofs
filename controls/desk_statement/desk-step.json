@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "step": {
+    "lemma_id": "L-ctl-0030",
+    "program_id": "ctl",
+    "kind": "prove",
+    "level": "warmup",
+    "status": "conjecture",
+    "faithfulness": "unreviewed",
+    "title": "Adding zero on the right",
+    "plain_sentence": "Adding zero to a natural number leaves it unchanged.",
+    "statement": "∀ (n : ℕ), n + 0 = n",
+    "statement_path": "statements/L-ctl-0030.txt",
+    "file_path": "MassGap/Outside/L_ctl_0030.lean",
+    "module": "MassGap.Outside.L_ctl_0030",
+    "imports": [
+      "MassGap.Defs"
+    ],
+    "context_md": "",
+    "sketch_md": "",
+    "failed_attempts": [],
+    "negated_twin": null,
+    "template": "import MassGap.Defs\n\nopen YangMills MassGap\nopen MeasureTheory Filter Set\nopen scoped Topology InnerProductSpace ENNReal NNReal Real\n\ntheorem MassGap.Outside.L_ctl_0030 :\n    ∀ (n : ℕ), n + 0 = n := by\n  sorry\n",
+    "value_template": null,
+    "search_range": null,
+    "parent_ids": [],
+    "points": 1,
+    "limits": {
+      "time_s": 1200,
+      "memory_mb": 6656,
+      "max_file_bytes": 524288,
+      "max_numeral_digits": 20,
+      "allowed_axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ]
+    }
+  },
+  "leases_live": 0,
+  "checker_runs": [],
+  "proved_by_handle": null,
+  "checked_at": null
+}

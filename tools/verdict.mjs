@@ -17,6 +17,7 @@ import {
 } from "./lib/verdict-core.mjs";
 import { validateAgainst } from "./lib/json-check.mjs";
 import { deskOrigin, siteOrigin, isConfigured } from "./lib/config.mjs";
+import { trustedStatementDigest, applyStatementCheck } from "./lib/statement-source.mjs";
 
 function gh(args, input) {
   const theResult = spawnSync("gh", args, { encoding: "utf8", input: input, maxBuffer: 16777216 });
@@ -169,10 +170,16 @@ async function main() {
   if (theFleet != null) {
     console.log("pull requests from " + theFleet.botLogin + " are credited to " + theFleet.handle);
   }
-  const theFinal = decideFinal({ pr: thePr, files: theFiles, run: theRun, artifact: theRead.artifact, fleet: theFleet });
+  let theFinal = decideFinal({ pr: thePr, files: theFiles, run: theRun, artifact: theRead.artifact, fleet: theFleet });
   if (theFinal.action == "skip") {
     console.log("we skipped pull request " + theNumber + ": " + theFinal.why);
     return;
+  }
+  if (theFinal.verdict == "ACCEPTED" && theFinal.lemma_id != null) {
+    const theTrusted = await trustedStatementDigest(theFinal.lemma_id, path.resolve("statements"), deskOrigin(), {});
+    const theClaimed = theRead.artifact == null ? null : theRead.artifact.statement_sha256;
+    console.log("the checker run says it used statement " + String(theClaimed) + " and the recorded statement read from the " + theTrusted.source + " is " + String(theTrusted.digest));
+    theFinal = applyStatementCheck(theFinal, theClaimed, theTrusted);
   }
   let theCommit = thePr.head_sha;
   if (theFinal.merge == true) {

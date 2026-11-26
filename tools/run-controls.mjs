@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { runCheck } from "./check-step.mjs";
 import { parseArguments } from "./lib/repo-io.mjs";
 import { isLemmaId } from "./lib/conventions.mjs";
+import { readDeskStepReply, writeStatementFiles, StatementUnavailable } from "./lib/statement-source.mjs";
 
 const toolsDir = path.dirname(fileURLToPath(import.meta.url));
 const semanticCodes = ["statement_mismatch", "definition_mismatch", "forbidden_axiom", "helper_name", "kernel_rejected", "missing_theorem", "import_mismatch", "build_failed", "duplicate_declaration", "olean_inconsistent"];
@@ -58,6 +59,9 @@ export function loadControl(dir) {
   if (Array.isArray(theControl.changes) == false || theControl.expected == undefined) {
     throw new Error("control " + dir + " needs changes and expected");
   }
+  if (theControl.desk_step != undefined && /^[A-Za-z][A-Za-z0-9_-]*\.json$/.test(theControl.desk_step) == false) {
+    throw new Error("control " + dir + " names a desk stub that is not a plain .json file beside it");
+  }
   if (theControl.forge != undefined && /^[A-Za-z][A-Za-z0-9_]*\.lean$/.test(theControl.forge) == false) {
     throw new Error("control " + dir + " names a forge script that is not a plain .lean file beside it");
   }
@@ -77,6 +81,25 @@ export function forgeOlean(proofs, dir, control, target) {
   if (theResult.status != 0 || fs.existsSync(target) == false) {
     const theOutput = String(theResult.stdout ?? "") + " " + String(theResult.stderr ?? "");
     throw new Error("the forge script " + control.forge + " did not write a module: " + theOutput.trim().slice(0, 300));
+  }
+}
+
+export function restoreFromStub(dir, control, target) {
+  const theOwn = path.join(dir, "statements");
+  if (fs.existsSync(theOwn) == true) {
+    fs.cpSync(theOwn, target, { recursive: true });
+  }
+  fs.mkdirSync(target, { recursive: true });
+  const theText = fs.readFileSync(path.join(dir, control.desk_step), "utf8");
+  try {
+    const theStep = readDeskStepReply(control.lemma_id, 200, "application/json", theText);
+    writeStatementFiles(target, control.lemma_id, theStep.statement, theStep.imports);
+    return "restored from the stubbed desk";
+  } catch (error) {
+    if ((error instanceof StatementUnavailable) == false) {
+      throw error;
+    }
+    return "the stubbed desk was refused: " + error.code;
   }
 }
 
@@ -109,11 +132,22 @@ function runOne(proofs, dir, control, lintonly) {
   if (lintonly == true && theLean == true) {
     theOptions.phase = "lint";
   }
+  let theStubDir = null;
   let theResult = null;
   try {
+    if (control.desk_step != undefined) {
+      theStubDir = fs.mkdtempSync(path.join(os.tmpdir(), "mg-desk-stub-"));
+      const theNote = restoreFromStub(dir, control, theStubDir);
+      console.log("  " + theNote);
+      theOptions.statements = theStubDir;
+    }
     theResult = checkControl(proofs, dir, control, theOptions);
   } catch (error) {
     theResult = { verdict: "FAULT", reason: "the checker failed: " + error.message };
+  } finally {
+    if (theStubDir != null) {
+      fs.rmSync(theStubDir, { recursive: true, force: true });
+    }
   }
   const theSeconds = Math.round((Date.now() - theStarted) / 1000);
   if (lintonly == true && theLean == true) {

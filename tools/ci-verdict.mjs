@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { parseArguments } from "./lib/repo-io.mjs";
 import { cleanReason } from "./lib/verdict-core.mjs";
 import { lastVerdictLine } from "./lib/pipeline.mjs";
+import { statementDigest, verdictAfterSource } from "./lib/statement-source.mjs";
 
 const maxLogBytes = 1048576;
 
@@ -89,7 +90,8 @@ export function composeVerdict(input) {
 
 function main() {
   const theOptions = parseArguments(process.argv.slice(2), []);
-  const theLint = readJson(theOptions.lint);
+  const theSource = readJson(theOptions.source);
+  const theLint = verdictAfterSource(readJson(theOptions.lint), theSource);
   const theBuildExit = Number.parseInt(theOptions["build-exit"] ?? "0", 10);
   const theOleanOk = theOptions["olean-ok"] == "1";
   const theBuildLog = readLog(theOptions["build-log"]);
@@ -103,10 +105,15 @@ function main() {
   const theStarted = theOptions["started-at"] ?? new Date().toISOString();
   const theFinished = new Date().toISOString();
   const theSeconds = (Date.parse(theFinished) - Date.parse(theStarted)) / 1000;
+  const theLemmaId = theLint == null ? null : theLint.lemma_id ?? null;
+  let theDigest = null;
+  if (theLemmaId != null && theOptions.statements != undefined) {
+    theDigest = statementDigest(theOptions.statements, theLemmaId);
+  }
   const theVerdict = {
     verdict: theComposed.verdict,
     reason: theComposed.verdict == "ACCEPTED" ? null : cleanReason(theComposed.reason, 480) ?? "no reason was given",
-    lemma_id: theLint == null ? null : theLint.lemma_id ?? null,
+    lemma_id: theLemmaId,
     file_path: theLint == null ? null : theLint.file_path ?? null,
     pr_number: Number.parseInt(theOptions["pr-number"] ?? "0", 10),
     head_sha: theOptions["head-sha"] ?? "",
@@ -114,7 +121,8 @@ function main() {
     duration_s: Number.isFinite(theSeconds) == true ? Math.max(theSeconds, 0) : 0,
     started_at: theStarted,
     finished_at: theFinished,
-    phase: theComposed.phase
+    phase: theComposed.phase,
+    statement_sha256: theDigest
   };
   fs.writeFileSync(theOptions.out ?? "verdict.json", JSON.stringify(theVerdict, null, 2) + "\n");
   if (theVerdict.verdict == "ACCEPTED") {

@@ -6,7 +6,7 @@ export const handlePattern = /^(?!seat-)[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
 export const shaPattern = /^[0-9a-f]{40}$/;
 export const timestampPattern = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,3})?Z$/;
 export const skipLabel = "not-a-step";
-export const artifactFields = ["verdict", "reason", "lemma_id", "file_path", "pr_number", "head_sha", "axioms", "duration_s", "started_at", "finished_at", "phase"];
+export const artifactFields = ["verdict", "reason", "lemma_id", "file_path", "pr_number", "head_sha", "axioms", "duration_s", "started_at", "finished_at", "phase", "statement_sha256"];
 
 export function cleanReason(text, num) {
   if (text == null || text == undefined) {
@@ -64,6 +64,9 @@ export function parseVerdictArtifact(text) {
   if (typeof theValue.finished_at != "string" || timestampPattern.test(theValue.finished_at) == false) {
     return { ok: false, error: "the verdict artifact has an invalid finished_at" };
   }
+  if (theValue.statement_sha256 != undefined && (typeof theValue.statement_sha256 != "string" || /^[0-9a-f]{64}$/.test(theValue.statement_sha256) == false)) {
+    return { ok: false, error: "the verdict artifact has an invalid statement_sha256" };
+  }
   const theArtifact = {
     verdict: theValue.verdict,
     reason: cleanReason(theValue.reason, 480),
@@ -73,7 +76,8 @@ export function parseVerdictArtifact(text) {
     axioms: cleanReason(theValue.axioms, 200),
     duration_s: Math.round(theValue.duration_s * 10) / 10,
     started_at: theValue.started_at,
-    finished_at: theValue.finished_at
+    finished_at: theValue.finished_at,
+    statement_sha256: theValue.statement_sha256 ?? null
   };
   return { ok: true, artifact: theArtifact };
 }

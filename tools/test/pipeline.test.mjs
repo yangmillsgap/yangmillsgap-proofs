@@ -88,7 +88,9 @@ describe("controls", () => {
     for (let n = 0; n < theNames.length; n++) {
       const theControl = loadControl(path.join(theDir, theNames[n]));
       const theStatement = path.join(theDir, theNames[n], "statements", theControl.lemma_id + ".txt");
-      expect(fs.existsSync(theStatement), theNames[n]).toBe(true);
+      const theStub = theControl.desk_step == undefined ? null : path.join(theDir, theNames[n], theControl.desk_step);
+      const theSource = theStub == null ? theStatement : theStub;
+      expect(fs.existsSync(theSource), theNames[n]).toBe(true);
     }
   });
 });

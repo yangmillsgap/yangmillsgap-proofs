@@ -1,0 +1,17 @@
+{
+  "name": "desk_statement_unsafe",
+  "lemma_id": "L-ctl-0032",
+  "description": "The stubbed desk serves a statement that names IO. The statement source refuses it, nothing is written, and the lint rejects the file.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0032.lean",
+      "mode": "100644"
+    }
+  ],
+  "desk_step": "desk-step.json",
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "no_recorded_statement"
+  }
+}

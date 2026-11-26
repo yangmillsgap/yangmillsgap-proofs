@@ -45,6 +45,11 @@ jobs:
       - name: Fetch the base commit for the diff
         run: git -C pr fetch --no-tags origin "$BASE_SHA"
 
+      - name: Restore a missing recorded statement from the desk's public step view
+        run: |
+          node base/tools/lib/statement-source.mjs restore --repo pr --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --statements base/statements --json out/statement-source.json || true
+
       - name: Lint
         id: lint
         run: |
@@ -116,6 +121,7 @@ jobs:
         if: always()
         run: |
           node base/tools/ci-verdict.mjs --lint out/lint.json \
+            --statements base/statements --source out/statement-source.json \
             --build-log out/build.log --build-exit "${BUILD_EXIT:-0}" --olean-ok "${OLEAN_OK:-0}" \
             --semantic out-semantic/semantic.json --semantic-exit "${SEMANTIC_EXIT:-0}" \
             --pr-number "$PR_NUMBER" --head-sha "$HEAD_SHA" --started-at "$STARTED_AT" \

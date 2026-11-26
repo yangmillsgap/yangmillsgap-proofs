@@ -1,0 +1,17 @@
+{
+  "name": "desk_statement_closed",
+  "lemma_id": "L-ctl-0031",
+  "description": "The stubbed desk says the step is already checked, so no statement is restored and the lint rejects the file.",
+  "changes": [
+    {
+      "status": "A",
+      "path": "MassGap/Outside/L_ctl_0031.lean",
+      "mode": "100644"
+    }
+  ],
+  "desk_step": "desk-step.json",
+  "expected": {
+    "verdict": "REJECTED",
+    "code": "no_recorded_statement"
+  }
+}
